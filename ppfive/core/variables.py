@@ -28,7 +28,6 @@ from .constants import (
     INDEX_LBHEM,
     INDEX_LBHR,
     INDEX_LBHRD,
-    INDEX_LBLREC,
     INDEX_LBLEV,
     INDEX_LBMIN,
     INDEX_LBMIND,

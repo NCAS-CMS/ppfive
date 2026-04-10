@@ -59,6 +59,13 @@ class File(Mapping[str, Variable]):
                 self._records = scan_pp_headers(self._reader, file_type)
             else:
                 self._records = scan_ff_headers(self._reader, file_type)
+            
+            if not self._records:
+                raise ValueError(
+                    f"No valid records found in {self.fmt} file {self.filename}. "
+                    f"The file may be corrupted or empty."
+                )
+            
             variable_index = build_variable_index(
                 self._records,
                 self._reader,
