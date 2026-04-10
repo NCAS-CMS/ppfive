@@ -76,3 +76,53 @@ def test_get_lazy_view_falls_back_with_log(caplog):
 
     assert view is f["x"]
     assert "get_lazy_view is not supported" in caplog.text
+
+
+def test_file_normalizes_variable_paths():
+    f = File(
+        __file__,
+        variable_index={
+            "temp": {
+                "shape": (1,),
+                "dtype": "f8",
+                "data_loader": lambda: np.array([1.0]),
+            }
+        },
+    )
+
+    assert np.allclose(f["temp"][:], np.array([1.0]))
+    assert np.allclose(f["/temp"][:], np.array([1.0]))
+
+    try:
+        _ = f["./temp"]
+    except KeyError:
+        # posix normpath strips ./, but this branch protects against regressions.
+        assert False, "Expected ./temp to resolve to temp"
+
+    try:
+        _ = f["group/temp"]
+        assert False, "Expected nested path lookup to fail"
+    except KeyError:
+        pass
+
+
+def test_set_parallelism_validation():
+    f = File(
+        __file__,
+        variable_index={
+            "temp": {
+                "shape": (1,),
+                "dtype": "f8",
+                "data_loader": lambda: np.array([1.0]),
+            }
+        },
+    )
+
+    f.set_parallelism(thread_count=0)
+    f.set_parallelism(thread_count=3, cat_range_allowed=False)
+
+    try:
+        f.set_parallelism(thread_count=-1)
+        assert False, "Expected negative thread_count to raise"
+    except ValueError:
+        pass

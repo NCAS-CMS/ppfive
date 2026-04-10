@@ -27,7 +27,7 @@ typedef enum { little_endian, big_endian } Byte_ordering;
 #define NATIVE_ORDERING little_endian
 #endif
 
-static char last_error[512] = {0};
+static _Thread_local char last_error[512] = {0};
 
 static void error_mesg(const char *fmt, ...)
 {
@@ -207,11 +207,13 @@ static PyObject *py_unwgdos(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    Py_BEGIN_ALLOW_THREADS
     if (word_size == 4) {
         status = unwgdos_sgl(input_copy, (int)input_len, (float32_t *)PyArray_DATA((PyArrayObject *)array), nout, (float32_t)mdi);
     } else {
         status = unwgdos_dbl(input_copy, (int)input_len, (float64_t *)PyArray_DATA((PyArrayObject *)array), nout, (float64_t)mdi);
     }
+    Py_END_ALLOW_THREADS
 
     PyMem_Free(input_copy);
 

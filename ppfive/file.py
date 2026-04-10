@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator, Mapping
 from pathlib import Path
+import posixpath
 from typing import Any
 
 from .core import detect_file_type, scan_ff_headers, scan_pp_headers
@@ -35,6 +36,8 @@ class File(Mapping[str, Variable]):
         self._owns_reader = reader is None
         self._reader = reader or LocalPosixReader(self.filename)
         self._records = []
+        self._thread_count = 0
+        self._cat_range_allowed = True
 
         if variable_index is None:
             file_type = detect_file_type(self._reader)
@@ -50,6 +53,10 @@ class File(Mapping[str, Variable]):
                 self._reader,
                 self.word_size,
                 self.byte_ordering,
+                parallel_config={
+                    "thread_count": self._thread_count,
+                    "cat_range_allowed": self._cat_range_allowed,
+                },
             )
         else:
             self.fmt = None
@@ -92,8 +99,46 @@ class File(Mapping[str, Variable]):
             self._reader.close()
             self._reader = None
 
+    def set_parallelism(self, thread_count: int = 5, cat_range_allowed: bool = True):
+        """Configure experimental chunk/record read parallelism."""
+        if thread_count is None:
+            thread_count = 0
+        thread_count = int(thread_count)
+        if thread_count < 0:
+            raise ValueError("thread_count must be >= 0")
+
+        self._thread_count = thread_count
+        self._cat_range_allowed = bool(cat_range_allowed)
+
+        if self._records:
+            variable_index = build_variable_index(
+                self._records,
+                self._reader,
+                self.word_size,
+                self.byte_ordering,
+                parallel_config={
+                    "thread_count": self._thread_count,
+                    "cat_range_allowed": self._cat_range_allowed,
+                },
+            )
+            self._variables = self._build_variables(variable_index)
+
     def __getitem__(self, key: str) -> Variable:
-        return self._variables[key]
+        if not isinstance(key, str):
+            raise TypeError("Variable key must be a string")
+
+        path = posixpath.normpath(key)
+        if path == ".":
+            raise KeyError("'.' does not reference a variable")
+        if path.startswith("/"):
+            path = path[1:]
+        if path.startswith("./"):
+            path = path[2:]
+
+        if "/" in path:
+            raise KeyError(f"Nested paths are not supported: {key!r}")
+
+        return self._variables[path]
 
     def __iter__(self) -> Iterator[str]:
         return iter(self._variables)

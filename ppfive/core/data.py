@@ -71,19 +71,22 @@ def _unpack_run_length(raw: bytes, nwords: int, byte_ordering: str, word_size: i
     return out
 
 
-def read_record_raw(reader: ByteReader, rec: RecordInfo, word_size: int) -> bytes:
+def get_record_packed_nbytes(rec: RecordInfo, word_size: int) -> int:
     extra_bytes = get_extra_data_length(rec.int_hdr, word_size)
-    packed_bytes = rec.disk_length - extra_bytes
+    return rec.disk_length - extra_bytes
+
+
+def read_record_raw(reader: ByteReader, rec: RecordInfo, word_size: int) -> bytes:
+    packed_bytes = get_record_packed_nbytes(rec, word_size)
     raw = reader.read_at(rec.data_offset, packed_bytes)
     if len(raw) < packed_bytes:
         raise ValueError("Short read while loading raw record bytes")
     return raw
 
 
-def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_ordering: str) -> np.ndarray:
+def decode_record_array_from_raw(raw: bytes, rec: RecordInfo, word_size: int, byte_ordering: str) -> np.ndarray:
     pack = int(rec.int_hdr[INDEX_LBPACK]) % 10
     _, nwords = get_type_and_num_words(rec.int_hdr, word_size)
-    raw = read_record_raw(reader, rec, word_size)
 
     if pack == 0:
         need = nwords * word_size
@@ -105,3 +108,8 @@ def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_
         raise NotImplementedError("GRIB packed data is not supported")
 
     raise NotImplementedError(f"Packed data mode {pack} is not implemented yet")
+
+
+def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_ordering: str) -> np.ndarray:
+    raw = read_record_raw(reader, rec, word_size)
+    return decode_record_array_from_raw(raw, rec, word_size, byte_ordering)

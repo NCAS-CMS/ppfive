@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from typing import Any
 
 import numpy as np
+
+from ppfive.io.fsspec_reader import FsspecReader
+from ppfive.io.local import LocalPosixReader
 
 from .constants import (
     INDEX_BDX,
@@ -42,7 +46,11 @@ from .constants import (
     INDEX_LBYRD,
     INT_MISSING_DATA,
 )
-from .data import read_record_array
+from .data import (
+    decode_record_array_from_raw,
+    get_record_packed_nbytes,
+    read_record_array,
+)
 from .interpret import get_type
 from .models import RecordInfo
 
@@ -144,7 +152,11 @@ def build_variable_index(
     reader,
     word_size: int,
     byte_ordering: str,
+    parallel_config: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
+    if parallel_config is None:
+        parallel_config = {"thread_count": 0, "cat_range_allowed": True}
+
     filtered = [r for r in records if not _record_is_skippable(r)]
     ordered = sorted(filtered, key=lambda r: (_between_var_key(r), _within_var_key(r)))
 
@@ -190,6 +202,54 @@ def build_variable_index(
             def _load():
                 out = np.empty((_nt, _nz, _ny, _nx), dtype=_dtype)
                 out.fill(np.nan if _dtype.kind == "f" else 0)
+
+                thread_count = int(parallel_config.get("thread_count", 0) or 0)
+                cat_range_allowed = bool(parallel_config.get("cat_range_allowed", True))
+
+                # Strategy A: fsspec bulk range reads for unpacked records.
+                if thread_count != 0 and cat_range_allowed and isinstance(reader, FsspecReader):
+                    fh = getattr(reader, "_fh", None)
+                    actual_fh = getattr(fh, "fh", fh)
+                    if actual_fh is not None and hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
+                        path = actual_fh.path
+                        starts = [rec.data_offset for rec in group_recs]
+                        stops = [rec.data_offset + get_record_packed_nbytes(rec, word_size) for rec in group_recs]
+                        buffers = actual_fh.fs.cat_ranges([path] * len(group_recs), starts, stops)
+
+                        items = list(zip(group_recs, buffers))
+
+                        def _decode_one(item):
+                            rec, raw = item
+                            ti = _t_index[_t_key(rec)]
+                            zi = _z_index[_z_key(rec)]
+                            values = decode_record_array_from_raw(raw, rec, word_size, byte_ordering)
+                            return ti, zi, values
+
+                        if thread_count > 1:
+                            with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                                decoded = executor.map(_decode_one, items)
+                                for ti, zi, values in decoded:
+                                    out[ti, zi, :, :] = values.reshape((_ny, _nx))
+                        else:
+                            for ti, zi, values in map(_decode_one, items):
+                                out[ti, zi, :, :] = values.reshape((_ny, _nx))
+
+                        return out
+
+                # Strategy B: local threaded reads using os.pread-backed reader.
+                if thread_count != 0 and isinstance(reader, LocalPosixReader):
+                    def _read_one(rec):
+                        ti = _t_index[_t_key(rec)]
+                        zi = _z_index[_z_key(rec)]
+                        values = read_record_array(reader, rec, word_size, byte_ordering)
+                        return ti, zi, values
+
+                    with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                        for ti, zi, values in executor.map(_read_one, group_recs):
+                            out[ti, zi, :, :] = values.reshape((_ny, _nx))
+                    return out
+
+                # Strategy C: serial fallback.
                 for rec in group_recs:
                     ti = _t_index[_t_key(rec)]
                     zi = _z_index[_z_key(rec)]
