@@ -4,6 +4,7 @@ channels:
 dependencies:
 	- python>=3.10
 	- numpy>=1.24
+	- cf-python
 	- fsspec>=2024.3.0
 	- pytest>=8
 	- pip

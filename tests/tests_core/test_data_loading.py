@@ -55,5 +55,5 @@ def test_variable_loader_reads_data_and_reshapes(tmp_path):
         arr = f[names[0]][:]
 
     assert arr.shape == (1, 2, 2, 2)
-    assert np.allclose(arr[0, 0], np.array([[1.0, 2.0], [3.0, 4.0]], dtype="float32"))
-    assert np.allclose(arr[0, 1], np.array([[5.0, 6.0], [7.0, 8.0]], dtype="float32"))
+    assert np.allclose(arr[0, 0], np.array([[5.0, 6.0], [7.0, 8.0]], dtype="float32"))
+    assert np.allclose(arr[0, 1], np.array([[1.0, 2.0], [3.0, 4.0]], dtype="float32"))

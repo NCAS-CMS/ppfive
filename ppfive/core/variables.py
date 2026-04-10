@@ -161,7 +161,7 @@ def build_variable_index(
         name_counts[base] += 1
         name = base if name_counts[base] == 1 else f"{base}_{name_counts[base]}"
 
-        z_levels = sorted({_z_key(r) for r in recs})
+        z_levels = sorted({_z_key(r) for r in recs}, reverse=True)
         t_steps = sorted({_t_key(r) for r in recs})
         z_index = {k: i for i, k in enumerate(z_levels)}
         t_index = {k: i for i, k in enumerate(t_steps)}

@@ -15,6 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 io = ["fsspec>=2024.3.0"]
 test = [
+	"cf-python>=3.16.0",
 	"pytest>=8",
 	"pytest-cov>=5",
 ]
