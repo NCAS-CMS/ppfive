@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+import numpy as np
+
 from .constants import (
     INDEX_BDX,
     INDEX_BDY,
@@ -40,6 +42,7 @@ from .constants import (
     INDEX_LBYRD,
     INT_MISSING_DATA,
 )
+from .data import read_record_array
 from .interpret import get_type
 from .models import RecordInfo
 
@@ -128,7 +131,20 @@ def _dtype_name(first: RecordInfo, word_size: int) -> str:
     return "float32" if word_size == 4 else "float64"
 
 
-def build_variable_index(records: list[RecordInfo], word_size: int) -> dict[str, dict[str, Any]]:
+def _z_key(rec: RecordInfo) -> tuple[Any, ...]:
+    return _within_var_key(rec)[13:16]
+
+
+def _t_key(rec: RecordInfo) -> tuple[Any, ...]:
+    return _within_var_key(rec)[:13]
+
+
+def build_variable_index(
+    records: list[RecordInfo],
+    reader,
+    word_size: int,
+    byte_ordering: str,
+) -> dict[str, dict[str, Any]]:
     filtered = [r for r in records if not _record_is_skippable(r)]
     ordered = sorted(filtered, key=lambda r: (_between_var_key(r), _within_var_key(r)))
 
@@ -145,31 +161,29 @@ def build_variable_index(records: list[RecordInfo], word_size: int) -> dict[str,
         name_counts[base] += 1
         name = base if name_counts[base] == 1 else f"{base}_{name_counts[base]}"
 
-        z_levels = {
-            (int(r.int_hdr[INDEX_LBLEV]), _float_key(r.real_hdr[INDEX_BLEV]), _float_key(r.real_hdr[INDEX_BHLEV]))
-            for r in recs
-        }
-        t_steps = {
-            (
-                int(r.int_hdr[INDEX_LBFT]),
-                int(r.int_hdr[INDEX_LBYR]),
-                int(r.int_hdr[INDEX_LBMON]),
-                int(r.int_hdr[INDEX_LBDAT]),
-                int(r.int_hdr[INDEX_LBHR]),
-                int(r.int_hdr[INDEX_LBMIN]),
-                int(r.int_hdr[INDEX_LBYRD]),
-                int(r.int_hdr[INDEX_LBMOND]),
-                int(r.int_hdr[INDEX_LBDATD]),
-                int(r.int_hdr[INDEX_LBHRD]),
-                int(r.int_hdr[INDEX_LBMIND]),
-            )
-            for r in recs
-        }
+        z_levels = sorted({_z_key(r) for r in recs})
+        t_steps = sorted({_t_key(r) for r in recs})
+        z_index = {k: i for i, k in enumerate(z_levels)}
+        t_index = {k: i for i, k in enumerate(t_steps)}
 
         ny = int(first.int_hdr[INDEX_LBROW])
         nx = int(first.int_hdr[INDEX_LBNPT])
         nz = len(z_levels)
         nt = len(t_steps)
+        dtype = np.dtype(_dtype_name(first, word_size))
+
+        def _make_loader(group_recs, _nt, _nz, _ny, _nx, _dtype, _t_index, _z_index):
+            def _load():
+                out = np.empty((_nt, _nz, _ny, _nx), dtype=_dtype)
+                out.fill(np.nan if _dtype.kind == "f" else 0)
+                for rec in group_recs:
+                    ti = _t_index[_t_key(rec)]
+                    zi = _z_index[_z_key(rec)]
+                    values = read_record_array(reader, rec, word_size, byte_ordering)
+                    out[ti, zi, :, :] = values.reshape((_ny, _nx))
+                return out
+
+            return _load
 
         variable_index[name] = {
             "attrs": {
@@ -180,6 +194,7 @@ def build_variable_index(records: list[RecordInfo], word_size: int) -> dict[str,
             "dtype": _dtype_name(first, word_size),
             "chunk_shape": (1, 1, ny, nx),
             "records": recs,
+            "data_loader": _make_loader(recs, nt, nz, ny, nx, dtype, t_index, z_index),
         }
 
     return variable_index

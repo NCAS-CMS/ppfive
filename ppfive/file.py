@@ -45,7 +45,12 @@ class File(Mapping[str, Variable]):
                 self._records = scan_pp_headers(self._reader, file_type)
             else:
                 self._records = scan_ff_headers(self._reader, file_type)
-            variable_index = build_variable_index(self._records, self.word_size)
+            variable_index = build_variable_index(
+                self._records,
+                self._reader,
+                self.word_size,
+                self.byte_ordering,
+            )
         else:
             self.fmt = None
             self.byte_ordering = None
