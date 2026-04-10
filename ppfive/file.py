@@ -5,6 +5,7 @@ from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
+from .core import detect_file_type, scan_ff_headers, scan_pp_headers
 from .io.base import ByteReader
 from .io.local import LocalPosixReader
 from .variable import Variable
@@ -32,6 +33,22 @@ class File(Mapping[str, Variable]):
         self.metadata_buffer_size = metadata_buffer_size
         self._owns_reader = reader is None
         self._reader = reader or LocalPosixReader(self.filename)
+        self._records = []
+
+        if variable_index is None:
+            file_type = detect_file_type(self._reader)
+            self.fmt = file_type.fmt
+            self.byte_ordering = file_type.byte_ordering
+            self.word_size = file_type.word_size
+            if file_type.fmt == "PP":
+                self._records = scan_pp_headers(self._reader, file_type)
+            else:
+                self._records = scan_ff_headers(self._reader, file_type)
+        else:
+            self.fmt = None
+            self.byte_ordering = None
+            self.word_size = None
+
         self._variables = self._build_variables(variable_index or {})
 
     def _build_variables(self, variable_index: dict[str, dict[str, Any]]) -> dict[str, Variable]:
