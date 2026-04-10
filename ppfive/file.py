@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .core import detect_file_type, scan_ff_headers, scan_pp_headers
+from .core.variables import build_variable_index
 from .io.base import ByteReader
 from .io.local import LocalPosixReader
 from .variable import Variable
@@ -44,6 +45,7 @@ class File(Mapping[str, Variable]):
                 self._records = scan_pp_headers(self._reader, file_type)
             else:
                 self._records = scan_ff_headers(self._reader, file_type)
+            variable_index = build_variable_index(self._records, self.word_size)
         else:
             self.fmt = None
             self.byte_ordering = None

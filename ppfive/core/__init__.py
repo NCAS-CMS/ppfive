@@ -5,6 +5,7 @@ from .header import read_header
 from .interpret import get_extra_data_offset_and_length, get_type_and_num_words
 from .models import FileTypeInfo, RecordInfo
 from .scanner import scan_ff_headers, scan_pp_headers
+from .variables import build_variable_index
 
 __all__ = [
 	"FileTypeInfo",
@@ -15,4 +16,5 @@ __all__ = [
 	"get_extra_data_offset_and_length",
 	"scan_pp_headers",
 	"scan_ff_headers",
+	"build_variable_index",
 ]
