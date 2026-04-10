@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import platform
+import shutil
+import subprocess
 
 from .base import ByteReader
 
@@ -20,14 +23,38 @@ class LocalPosixReader(ByteReader):
         if not self._disable_os_cache:
             return
 
-        if hasattr(os, "F_NOCACHE"):
-            try:
-                import fcntl
+        try:
+            import fcntl
+        except ImportError:
+            return
 
-                fcntl.fcntl(self._fd, os.F_NOCACHE, 1)
+        if hasattr(fcntl, "F_NOCACHE"):
+            try:
+                fcntl.fcntl(self._fd, fcntl.F_NOCACHE, 1)
             except OSError:
                 # Cache hint is optional; do not fail reads if unsupported.
                 pass
+
+    @staticmethod
+    def drop_os_cache_best_effort() -> bool:
+        """Best-effort cache drop for local benchmarking.
+
+        On macOS this tries the `purge` command when available.
+        Returns True when a cache-drop command was executed successfully.
+        """
+        if platform.system() == "Darwin" and shutil.which("purge"):
+            try:
+                completed = subprocess.run(
+                    ["purge"],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                return completed.returncode == 0
+            except OSError:
+                return False
+
+        return False
 
     def read_at(self, offset: int, nbytes: int) -> bytes:
         if offset < 0:

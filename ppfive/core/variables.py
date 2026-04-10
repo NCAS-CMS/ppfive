@@ -183,6 +183,8 @@ def build_variable_index(
         nz = len(z_levels)
         nt = len(t_steps)
         dtype = np.dtype(_dtype_name(first, word_size))
+        packing_modes = sorted({int(rec.int_hdr[INDEX_LBPACK]) % 10 for rec in recs})
+        compression_modes = sorted({(int(rec.int_hdr[INDEX_LBPACK]) // 10) % 10 for rec in recs})
         chunk_records = []
 
         for rec in recs:
@@ -263,6 +265,10 @@ def build_variable_index(
             "attrs": {
                 "stash_model": int(first.int_hdr[INDEX_LBUSER7]),
                 "stash_code": int(first.int_hdr[INDEX_LBUSER4]),
+                "packing_modes": packing_modes,
+                "compression_modes": compression_modes,
+                "is_packed": any(mode != 0 for mode in packing_modes),
+                "is_wgdos_packed": 1 in packing_modes,
             },
             "shape": (nt, nz, ny, nx),
             "dtype": _dtype_name(first, word_size),

@@ -20,9 +20,10 @@ class File(Mapping[str, Variable]):
 
     def __init__(
         self,
-        filename: str,
+        filename: str | ByteReader,
         mode: str = "r",
         metadata_buffer_size: int = 1,
+        disable_os_cache: bool = False,
         *,
         reader: ByteReader | None = None,
         variable_index: dict[str, dict[str, Any]] | None = None,
@@ -30,11 +31,21 @@ class File(Mapping[str, Variable]):
         if mode != "r":
             raise ValueError("ppfive.File currently supports read-only mode='r'")
 
+        if isinstance(filename, ByteReader):
+            if reader is not None:
+                raise ValueError("Do not provide both filename as ByteReader and reader=")
+            reader = filename
+            filename = getattr(reader, "path", "<byte-reader>")
+
         self.filename = str(Path(filename))
         self.mode = mode
         self.metadata_buffer_size = metadata_buffer_size
+        self.disable_os_cache = bool(disable_os_cache)
         self._owns_reader = reader is None
-        self._reader = reader or LocalPosixReader(self.filename)
+        self._reader = reader or LocalPosixReader(
+            self.filename,
+            disable_os_cache=self.disable_os_cache,
+        )
         self._records = []
         self._thread_count = 0
         self._cat_range_allowed = True
