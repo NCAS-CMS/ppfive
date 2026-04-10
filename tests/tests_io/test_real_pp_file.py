@@ -10,6 +10,8 @@ from ppfive import File
 @pytest.mark.parametrize(
     ("filename", "expected_name", "expected_shape"),
     [
+        ("aaaaoa.pmh8dec.pp", "m01s03i245", (1, 1, 30, 24)),
+        ("extra_data.pp", "m01s03i236", (1, 1, 100, 3)),
         ("test2.pp", "m01s15i201", (3, 5, 110, 106)),
         ("umfile.pp", "m01s00i001", (3, 1, 73, 96)),
         ("wgdos_packed.pp", "m01s30i201", (1, 1, 145, 192)),
@@ -17,7 +19,7 @@ from ppfive import File
 )
 def test_real_pp_file_exposes_variables(filename, expected_name, expected_shape):
     path = Path(__file__).resolve().parents[1] / "data" / filename
-    assert path.exists(), "Expected fixture tests/data/test2.pp"
+    assert path.exists(), f"Expected fixture tests/data/{filename}"
 
     with File(str(path)) as f:
         names = list(f)
