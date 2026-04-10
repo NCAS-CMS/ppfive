@@ -19,3 +19,11 @@ class RecordInfo:
     header_offset: int
     data_offset: int
     disk_length: int
+
+
+@dataclass(frozen=True)
+class StoreInfo:
+    chunk_offset: tuple[int, ...]
+    filter_mask: int
+    byte_offset: int
+    size: int

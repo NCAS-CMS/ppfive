@@ -69,6 +69,8 @@ class File(Mapping[str, Variable]):
                 chunk_shape=meta.get("chunk_shape"),
                 data_loader=meta.get("data_loader"),
                 file=self,
+                parent=self,
+                chunk_records=list(meta.get("chunk_records", [])),
             )
         return variables
 
@@ -107,3 +109,13 @@ class File(Mapping[str, Variable]):
 
     def __repr__(self) -> str:
         return f'<PP file "{self.filename}" ({len(self)} variables)>'
+
+    def to_reference_dict(self) -> dict[str, Any]:
+        return {
+            "version": 1,
+            "path": self.filename,
+            "variables": {
+                name: variable.to_reference_dict()
+                for name, variable in self._variables.items()
+            },
+        }

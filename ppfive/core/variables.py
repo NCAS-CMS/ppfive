@@ -171,6 +171,20 @@ def build_variable_index(
         nz = len(z_levels)
         nt = len(t_steps)
         dtype = np.dtype(_dtype_name(first, word_size))
+        chunk_records = []
+
+        for rec in recs:
+            chunk_records.append(
+                {
+                    "record": rec,
+                    "chunk_coords": (
+                        t_index[_t_key(rec)],
+                        z_index[_z_key(rec)],
+                        0,
+                        0,
+                    ),
+                }
+            )
 
         def _make_loader(group_recs, _nt, _nz, _ny, _nx, _dtype, _t_index, _z_index):
             def _load():
@@ -194,6 +208,7 @@ def build_variable_index(
             "dtype": _dtype_name(first, word_size),
             "chunk_shape": (1, 1, ny, nx),
             "records": recs,
+            "chunk_records": chunk_records,
             "data_loader": _make_loader(recs, nt, nz, ny, nx, dtype, t_index, z_index),
         }
 

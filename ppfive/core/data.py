@@ -71,14 +71,19 @@ def _unpack_run_length(raw: bytes, nwords: int, byte_ordering: str, word_size: i
     return out
 
 
-def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_ordering: str) -> np.ndarray:
-    pack = int(rec.int_hdr[INDEX_LBPACK]) % 10
-    _, nwords = get_type_and_num_words(rec.int_hdr, word_size)
+def read_record_raw(reader: ByteReader, rec: RecordInfo, word_size: int) -> bytes:
     extra_bytes = get_extra_data_length(rec.int_hdr, word_size)
     packed_bytes = rec.disk_length - extra_bytes
     raw = reader.read_at(rec.data_offset, packed_bytes)
     if len(raw) < packed_bytes:
-        raise ValueError("Short read while loading record data")
+        raise ValueError("Short read while loading raw record bytes")
+    return raw
+
+
+def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_ordering: str) -> np.ndarray:
+    pack = int(rec.int_hdr[INDEX_LBPACK]) % 10
+    _, nwords = get_type_and_num_words(rec.int_hdr, word_size)
+    raw = read_record_raw(reader, rec, word_size)
 
     if pack == 0:
         need = nwords * word_size
