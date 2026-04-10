@@ -1,0 +1,40 @@
+# macOS
+.DS_Store
+
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Packaging/build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual/env files
+.venv/
+venv/
+env/
+.python-version
+
+# Test/cache/tool outputs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Notebook/checkpoint noise
+.ipynb_checkpoints/
+
+# IDE/editor
+.vscode/settings.json
+
+# Local logs/temp
+*.log
+*.tmp
+
+# Do not commit original source snapshot
+orig/
