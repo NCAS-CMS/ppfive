@@ -4,8 +4,8 @@ import numpy as np
 
 from ppfive.io.base import ByteReader
 
-from .constants import INDEX_LBPACK
-from .interpret import get_type_and_num_words
+from .constants import INDEX_BMDI, INDEX_LBPACK
+from .interpret import get_extra_data_length, get_type_and_num_words
 from .models import RecordInfo
 
 
@@ -25,16 +25,76 @@ def _dtype_for_record(rec: RecordInfo, word_size: int, byte_ordering: str) -> np
     return np.dtype(f"{prefix}f{word_size}")
 
 
+def _unpack_cray32(raw: bytes, nwords: int, byte_ordering: str, word_size: int) -> np.ndarray:
+    prefix = _endian_prefix(byte_ordering)
+    packed = np.frombuffer(raw[: nwords * 4], dtype=np.dtype(f"{prefix}f4"), count=nwords)
+    if word_size == 4:
+        return packed.astype(np.float32, copy=True)
+    return packed.astype(np.float64, copy=True)
+
+
+def _unpack_run_length(raw: bytes, nwords: int, byte_ordering: str, word_size: int, mdi: float) -> np.ndarray:
+    prefix = _endian_prefix(byte_ordering)
+    dtype = np.dtype(f"{prefix}f{word_size}")
+    packed = np.frombuffer(raw, dtype=dtype)
+    out = np.empty(nwords, dtype=np.float32 if word_size == 4 else np.float64)
+
+    src = 0
+    dst = 0
+    while src < packed.size and dst < nwords:
+        value = packed[src]
+        src += 1
+        if value != mdi:
+            out[dst] = value
+            dst += 1
+            continue
+
+        if src >= packed.size:
+            raise ValueError("Malformed run-length packed data: truncated repeat count")
+
+        repeat = int(0.5 + float(packed[src]))
+        src += 1
+        if repeat < 0:
+            raise ValueError("Malformed run-length packed data: negative repeat count")
+
+        end = dst + repeat
+        if end > nwords:
+            raise ValueError("Malformed run-length packed data: repeat exceeds output size")
+
+        out[dst:end] = mdi
+        dst = end
+
+    if dst != nwords:
+        raise ValueError("Malformed run-length packed data: output size mismatch")
+
+    return out
+
+
 def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_ordering: str) -> np.ndarray:
     pack = int(rec.int_hdr[INDEX_LBPACK]) % 10
-    if pack != 0:
-        raise NotImplementedError(f"Packed data mode {pack} is not implemented yet")
-
     _, nwords = get_type_and_num_words(rec.int_hdr, word_size)
-    raw = reader.read_at(rec.data_offset, rec.disk_length)
-    need = nwords * word_size
-    if len(raw) < need:
+    extra_bytes = get_extra_data_length(rec.int_hdr, word_size)
+    packed_bytes = rec.disk_length - extra_bytes
+    raw = reader.read_at(rec.data_offset, packed_bytes)
+    if len(raw) < packed_bytes:
         raise ValueError("Short read while loading record data")
 
-    dtype = _dtype_for_record(rec, word_size, byte_ordering)
-    return np.frombuffer(raw[:need], dtype=dtype, count=nwords).copy()
+    if pack == 0:
+        need = nwords * word_size
+        dtype = _dtype_for_record(rec, word_size, byte_ordering)
+        return np.frombuffer(raw[:need], dtype=dtype, count=nwords).copy()
+
+    if pack == 1:
+        raise NotImplementedError("WGDOS packed data is not implemented yet")
+
+    if pack == 2:
+        return _unpack_cray32(raw, nwords, byte_ordering, word_size)
+
+    if pack == 4:
+        mdi = float(rec.real_hdr[INDEX_BMDI])
+        return _unpack_run_length(raw, nwords, byte_ordering, word_size, mdi)
+
+    if pack == 3:
+        raise NotImplementedError("GRIB packed data is not supported")
+
+    raise NotImplementedError(f"Packed data mode {pack} is not implemented yet")
