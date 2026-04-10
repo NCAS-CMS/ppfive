@@ -7,6 +7,7 @@ from ppfive.io.base import ByteReader
 from .constants import INDEX_BMDI, INDEX_LBPACK
 from .interpret import get_extra_data_length, get_type_and_num_words
 from .models import RecordInfo
+from ..wgdos import unpack_wgdos
 
 
 def _endian_prefix(byte_ordering: str) -> str:
@@ -85,7 +86,8 @@ def read_record_array(reader: ByteReader, rec: RecordInfo, word_size: int, byte_
         return np.frombuffer(raw[:need], dtype=dtype, count=nwords).copy()
 
     if pack == 1:
-        raise NotImplementedError("WGDOS packed data is not implemented yet")
+        mdi = float(rec.real_hdr[INDEX_BMDI])
+        return unpack_wgdos(raw, nwords, mdi, word_size)
 
     if pack == 2:
         return _unpack_cray32(raw, nwords, byte_ordering, word_size)
