@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
+from datetime import datetime
 from typing import Any
 
 import numpy as np
@@ -57,6 +58,51 @@ from .data import (
 from .interpret import get_type
 from .models import RecordInfo
 from .stash_table import stash_records
+
+
+def _calendar_from_lbtim(lbtim: int) -> str:
+    _, ib_ic = divmod(int(lbtim), 100)
+    _, ic = divmod(ib_ic, 10)
+    if ic == 1:
+        return "gregorian"
+    if ic == 4:
+        return "365_day"
+    return "360_day"
+
+
+def _time_values_from_t_steps(
+    t_steps: list[tuple[Any, ...]],
+    *,
+    units: str,
+    calendar: str,
+) -> np.ndarray:
+    values: list[float] = []
+    if calendar == "gregorian":
+        ref_year = int(units.split()[2].split("-")[0])
+        ref = datetime(ref_year, 1, 1, 0, 0)
+        for tkey in t_steps:
+            dt = datetime(int(tkey[1]), int(tkey[2]), int(tkey[3]), int(tkey[5]), int(tkey[6]))
+            delta = dt - ref
+            values.append(delta.total_seconds() / 86400.0)
+        return np.asarray(values, dtype=np.float64)
+
+    try:
+        import cftime
+
+        for tkey in t_steps:
+            dt = cftime.datetime(
+                int(tkey[1]),
+                int(tkey[2]),
+                int(tkey[3]),
+                int(tkey[5]),
+                int(tkey[6]),
+                calendar=calendar,
+            )
+            values.append(float(cftime.date2num(dt, units, calendar)))
+        return np.asarray(values, dtype=np.float64)
+    except Exception:
+        # Keep shape correct even if non-gregorian conversion support is unavailable.
+        return np.arange(len(t_steps), dtype=np.float64)
 
 
 def _infer_um_version(first: RecordInfo) -> int:
@@ -317,6 +363,14 @@ def build_variable_index(
             z_index = {k: i for i, k in enumerate(z_levels)}
             t_index = {k: i for i, k in enumerate(t_steps)}
 
+            calendar = _calendar_from_lbtim(int(first.int_hdr[INDEX_LBTIM]))
+            time_units = f"days since {int(first.int_hdr[INDEX_LBYR])}-1-1"
+            time_values = _time_values_from_t_steps(
+                t_steps,
+                units=time_units,
+                calendar=calendar,
+            )
+
             ny = int(first.int_hdr[INDEX_LBROW])
             nx = int(first.int_hdr[INDEX_LBNPT])
             nz = len(z_levels)
@@ -416,11 +470,16 @@ def build_variable_index(
                 "attrs": {
                     "stash_model": int(first.int_hdr[INDEX_LBUSER7]),
                     "stash_code": int(first.int_hdr[INDEX_LBUSER4]),
+                    "lbtim": int(first.int_hdr[INDEX_LBTIM]),
+                    "lbproc": int(first.int_hdr[INDEX_LBPROC]),
                     "packing_modes": packing_modes,
                     "compression_modes": compression_modes,
                     "is_packed": any(mode != 0 for mode in packing_modes),
                     "is_wgdos_packed": 1 in packing_modes,
                     **_enrich_cf_like_attrs(first),
+                    "time_values": time_values,
+                    "time_units": time_units,
+                    "time_calendar": calendar,
                 },
                 "shape": (nz, nt, ny, nx) if z_first else (nt, nz, ny, nx),
                 "dtype": _dtype_name(first, word_size),

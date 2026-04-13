@@ -52,6 +52,7 @@ class _DimensionScale:
         units: str | None = None,
         axis: str | None = None,
         positive: str | None = None,
+        calendar: str | None = None,
         data: np.ndarray | None = None,
     ):
         self.name = name
@@ -82,6 +83,8 @@ class _DimensionScale:
             self.attrs["axis"] = np.bytes_(axis)
         if positive:
             self.attrs["positive"] = np.bytes_(positive)
+        if calendar:
+            self.attrs["calendar"] = np.bytes_(calendar)
 
     def __getitem__(self, key):
         if self._data is not None:
@@ -181,6 +184,81 @@ def _regular_axis_values(origin: float, delta: float, size: int, *, is_longitude
         delta,
         dtype=np.float64,
     )
+
+
+def _xy_axis_codes(lbcode: int) -> tuple[int | None, int | None]:
+    """Return UM axis codes (ix, iy) inferred from LBCODE."""
+    if lbcode in (1, 2):
+        return 11, 10
+    if lbcode in (101, 102):
+        return -11, -10
+    if lbcode >= 10000:
+        x, y = divmod(divmod(lbcode, 10000)[1], 100)
+        return x, y
+    return None, None
+
+
+def _derive_cell_methods(attrs: Mapping[str, Any], dim_names: tuple[str, ...]) -> str | None:
+    """Derive CF cell_methods from UM LBPROC/LBTIM metadata (umread parity)."""
+    methods: list[str] = []
+
+    lbproc = int(attrs.get("lbproc", 0) or 0)
+    lbtim = int(attrs.get("lbtim", 0) or 0)
+    lbcode = int(attrs.get("lbcode", 0) or 0)
+    cf_info = attrs.get("cf_info") or {}
+
+    _, ib_ic = divmod(lbtim, 100)
+    lbtim_ib, _ = divmod(ib_ic, 10)
+    tmean_proc = 0
+
+    # Ensemble mean.
+    if 131072 <= lbproc < 262144:
+        methods.append("realization: mean")
+        lbproc -= 131072
+
+    if lbtim_ib in (2, 3) and lbproc in (128, 192, 2176, 4224, 8320):
+        tmean_proc = 128
+        lbproc -= 128
+
+    ix, iy = _xy_axis_codes(lbcode)
+
+    # Area methods.
+    if ix in (10, 11, 12, -10, -11) and iy in (10, 11, 12, -10, -11):
+        if "where" in cf_info:
+            methods.append("area: mean")
+            methods.append(str(cf_info["where"]))
+            if "over" in cf_info:
+                methods.append(str(cf_info["over"]))
+
+        if lbproc == 64:
+            methods.append("x: mean")
+
+    # Vertical methods.
+    if lbproc == 2048:
+        methods.append("z: mean")
+
+    # Time methods.
+    has_time_axis = "time" in dim_names
+    axis = "time"
+    if lbtim_ib in (0, 1):
+        if has_time_axis:
+            methods.append(f"{axis}: point")
+    elif lbproc == 4096:
+        methods.append(f"{axis}: minimum")
+    elif lbproc == 8192:
+        methods.append(f"{axis}: maximum")
+
+    if tmean_proc == 128:
+        if lbtim_ib == 2:
+            methods.append(f"{axis}: mean")
+        elif lbtim_ib == 3:
+            methods.append(f"{axis}: mean within years")
+            methods.append(f"{axis}: mean over years")
+
+    if not methods:
+        return None
+
+    return " ".join(methods)
 
 
 class File(Mapping[str, Variable]):
@@ -332,6 +410,11 @@ class File(Mapping[str, Variable]):
             dim_names: tuple[str, ...],
             attrs: Mapping[str, Any],
         ) -> np.ndarray | None:
+            if dim_name == "time":
+                values = attrs.get("time_values")
+                if values is not None:
+                    return np.asarray(values, dtype=np.float64)
+
             if len(shape) < 2:
                 return None
 
@@ -373,8 +456,16 @@ class File(Mapping[str, Variable]):
                         units=_dim_units(dim_name),
                         axis=_dim_axis_map.get(dim_name),
                         positive=_dim_positive_map.get(dim_name),
+                        calendar=(attrs.get("time_calendar") if dim_name == "time" else None),
                         data=_dim_data(dim_name, dim_size, shape, dim_names, attrs),
                     )
+
+                    if dim_name == "time":
+                        _time_units = attrs.get("time_units")
+                        if _time_units is not None:
+                            self._pyfive_dimension_scales[dim_name].attrs["units"] = np.bytes_(
+                                str(_time_units)
+                            )
 
             if dim_names:
                 # Mirrors the structure expected by cfdm's p5netcdf adapter.
@@ -382,6 +473,10 @@ class File(Mapping[str, Variable]):
                     "DIMENSION_LIST",
                     tuple((dim_name,) for dim_name in dim_names),
                 )
+
+            cell_methods = _derive_cell_methods(attrs, dim_names)
+            if cell_methods:
+                attrs.setdefault("cell_methods", cell_methods)
 
             # Detect rotated lat/lon grid from BPLAT (non-trivial pole position).
             bplat = attrs.get("bplat")
@@ -436,7 +531,16 @@ class File(Mapping[str, Variable]):
                 del attrs["bplat"]
                 del attrs["bplon"]
             # Remove grid geometry attrs that served their purpose.
-            for _k in ("bzy", "bdy", "bzx", "bdx", "lbcode"):
+            for _k in (
+                "bzy",
+                "bdy",
+                "bzx",
+                "bdx",
+                "lbcode",
+                "time_values",
+                "time_units",
+                "time_calendar",
+            ):
                 attrs.pop(_k, None)
 
             variables[name] = Variable(

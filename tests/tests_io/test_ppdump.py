@@ -71,3 +71,14 @@ def test_ppdump_matches_core_variable_names_with_p5dump_fixture():
 def test_ppdump_help_and_special_flag():
     assert ppdump_main(["-h"]) == 0
     assert ppdump_main(["-s", "tests/data/test2.pp"]) == 0
+
+
+def test_ppdump_time_axis_metadata_matches_expected():
+    out = _run_ppdump("tests/data/test2.pp")
+
+    assert "float64 time(time) ;" in out
+    assert 'time:axis = "T" ;' in out
+    assert 'time:standard_name = "time" ;' in out
+    assert 'time:units = "days since 1979-1-1" ;' in out
+    assert 'time:calendar = "gregorian" ;' in out
+    assert 'UM_m01s15i201_vn405:cell_methods = "time: mean" ;' in out
