@@ -29,9 +29,7 @@ def test_cf_reads_open_ppfive_file_and_matches_direct_pp_read():
             from_path.nc_get_variable()
         )
         assert from_ppfive.array.shape == from_path.array.shape
-        assert np.allclose(
+        assert np.array_equal(
             np.asarray(from_ppfive.array),
             np.asarray(from_path.array),
-            rtol=1e-6,
-            atol=1e-6,
         )
