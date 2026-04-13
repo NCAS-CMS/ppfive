@@ -12,7 +12,8 @@ def _data_variable_names(f: File) -> list[str]:
     return [
         name
         for name, variable in f.variables.items()
-        if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        if variable.attrs.get("CLASS") not in (b"DIMENSION_SCALE", b"AUXILIARY_COORDINATE")
+        and "grid_mapping_name" not in variable.attrs
     ]
 
 

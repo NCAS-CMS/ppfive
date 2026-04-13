@@ -52,7 +52,8 @@ def test_variable_loader_reads_data_and_reshapes(tmp_path):
         names = [
             name
             for name, variable in f.variables.items()
-            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+            if variable.attrs.get("CLASS") not in (b"DIMENSION_SCALE", b"AUXILIARY_COORDINATE")
+            and "grid_mapping_name" not in variable.attrs
         ]
         assert names == ["m01s16i004"]
 

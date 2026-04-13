@@ -50,11 +50,23 @@ class _DimensionScale:
         *,
         standard_name: str | None = None,
         units: str | None = None,
+        axis: str | None = None,
+        positive: str | None = None,
+        data: np.ndarray | None = None,
     ):
         self.name = name
         self.file = file_obj
-        self.shape = (int(size),)
-        self.dtype = np.dtype("int32")
+        if data is not None:
+            arr = np.asarray(data)
+            if arr.ndim != 1:
+                raise ValueError("Dimension scale data must be 1-D")
+            self._data = arr
+            self.shape = (int(arr.size),)
+            self.dtype = arr.dtype
+        else:
+            self._data = None
+            self.shape = (int(size),)
+            self.dtype = np.dtype("int32")
         self.maxshape = self.shape
         self.chunks = None
         self.attrs = {
@@ -66,9 +78,109 @@ class _DimensionScale:
             self.attrs["standard_name"] = np.bytes_(standard_name)
         if units:
             self.attrs["units"] = np.bytes_(units)
+        if axis:
+            self.attrs["axis"] = np.bytes_(axis)
+        if positive:
+            self.attrs["positive"] = np.bytes_(positive)
 
     def __getitem__(self, key):
+        if self._data is not None:
+            return self._data[key]
+
         return np.arange(self.shape[0], dtype=self.dtype)[key]
+
+
+class _ScalarVar:
+    """Scalar (shape=()) variable for ancillary metadata such as grid_mapping."""
+
+    def __init__(self, name: str, attrs: dict):
+        self.name = name
+        self.shape = ()
+        self.dtype = np.dtype("S1")
+        self.maxshape = ()
+        self.chunks = None
+        self.attrs = attrs
+
+    def __getitem__(self, key):
+        return b""
+
+
+class _AuxVar:
+    """2-D auxiliary coordinate variable (e.g. unrotated latitude/longitude)."""
+
+    def __init__(self, name: str, data: np.ndarray, attrs: dict):
+        self.name = name
+        self._data = data
+        self.shape = data.shape
+        self.dtype = data.dtype
+        self.maxshape = data.shape
+        self.chunks = None
+        self.attrs = attrs
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+
+_PI_OVER_180 = np.pi / 180.0
+_ATOL = 1e-8
+
+
+def _unrotated_latlon(
+    rot_lat: np.ndarray,
+    rot_lon: np.ndarray,
+    pole_lat: float,
+    pole_lon: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Convert 1-D rotated lat/lon arrays to 2-D true lat/lon arrays."""
+    pole_lon = (pole_lon % 360.0) * _PI_OVER_180
+    pole_lat = pole_lat * _PI_OVER_180
+    cos_pole = np.cos(pole_lat)
+    sin_pole = np.sin(pole_lat)
+
+    rlon = rot_lon.copy()
+    rlon %= 360.0
+    rlon = np.where(rlon < 180.0, rlon, rlon - 360.0)
+
+    nlat, nlon = rot_lat.size, rlon.size
+    rlon2d = np.resize(np.deg2rad(rlon), (nlat, nlon))
+    rlat2d = np.resize(np.deg2rad(rot_lat), (nlon, nlat))
+    rlat2d = rlat2d.T
+
+    cpart = np.cos(rlon2d) * np.cos(rlat2d)
+    sin_rlat = np.sin(rlat2d)
+    x = np.clip(cos_pole * cpart + sin_pole * sin_rlat, -1.0, 1.0)
+    true_lat = np.arcsin(x)
+
+    x = np.clip((-cos_pole * sin_rlat + sin_pole * cpart) / np.cos(true_lat), -1.0, 1.0)
+    true_lon = -np.arccos(x)
+    true_lon = np.where(rlon2d > 0.0, -true_lon, true_lon)
+    true_lon += (pole_lon - np.pi) if pole_lon >= _ATOL else 0.0
+
+    return np.rad2deg(true_lat), np.rad2deg(true_lon)
+
+
+def _regular_axis_values(origin: float, delta: float, size: int, *, is_longitude: bool) -> np.ndarray:
+    """Create regular coordinate values from UM origin/delta header entries."""
+    size = int(size)
+    if size <= 0:
+        return np.array([], dtype=np.float64)
+
+    if abs(delta) <= _ATOL:
+        return np.arange(1, size + 1, dtype=np.float64)
+
+    if is_longitude:
+        origin -= divmod(origin + delta * size, 360.0)[0] * 360.0
+        while origin + delta * size > 360.0:
+            origin -= 360.0
+        while origin + delta * size < -360.0:
+            origin += 360.0
+
+    return np.arange(
+        origin + delta,
+        origin + delta * (size + 0.5),
+        delta,
+        dtype=np.float64,
+    )
 
 
 class File(Mapping[str, Variable]):
@@ -115,6 +227,7 @@ class File(Mapping[str, Variable]):
         self.groups: dict[str, Any] = {}
         self.dimensions: dict[str, Any] = {}
         self._pyfive_dimension_scales: dict[str, _DimensionScale] = {}
+        self._grid_mapping_vars: dict[str, _ScalarVar] = {}
 
         if variable_index is None:
             file_type = detect_file_type(self._reader)
@@ -154,9 +267,22 @@ class File(Mapping[str, Variable]):
         all_variables: dict[str, Any] = {}
         all_variables.update(self._variables)
         all_variables.update(self._pyfive_dimension_scales)
+        all_variables.update(self._grid_mapping_vars)
         self.variables = all_variables
 
     def _build_variables(self, variable_index: dict[str, dict[str, Any]]) -> dict[str, Variable]:
+        _dim_axis_map: dict[str, str | None] = {
+            "time": "T",
+            "air_pressure": "Z",
+            "model_level_number": "Z",
+            "pseudo_level": None,
+            "grid_latitude": "Y",
+            "grid_longitude": "X",
+        }
+        _dim_positive_map: dict[str, str] = {
+            "air_pressure": "down",
+        }
+
         def _vertical_dim_name(lbvc: int) -> str:
             if lbvc == 8:
                 return "air_pressure"
@@ -199,6 +325,34 @@ class File(Mapping[str, Variable]):
 
             return f"{base_name}_{dim_size}"
 
+        def _dim_data(
+            dim_name: str,
+            dim_size: int,
+            shape: tuple[int, ...],
+            dim_names: tuple[str, ...],
+            attrs: Mapping[str, Any],
+        ) -> np.ndarray | None:
+            if len(shape) < 2:
+                return None
+
+            if dim_name == "grid_latitude" and len(dim_names) >= 2 and dim_names[-2] == dim_name:
+                return _regular_axis_values(
+                    origin=float(attrs.get("bzy", 0.0)),
+                    delta=float(attrs.get("bdy", 1.0)),
+                    size=dim_size,
+                    is_longitude=False,
+                )
+
+            if dim_name == "grid_longitude" and len(dim_names) >= 1 and dim_names[-1] == dim_name:
+                return _regular_axis_values(
+                    origin=float(attrs.get("bzx", 0.0)),
+                    delta=float(attrs.get("bdx", 1.0)),
+                    size=dim_size,
+                    is_longitude=True,
+                )
+
+            return None
+
         variables: dict[str, Variable] = {}
         for name, meta in variable_index.items():
             shape = tuple(meta.get("shape", ()))
@@ -217,6 +371,9 @@ class File(Mapping[str, Variable]):
                         self,
                         standard_name=(dim_name if "dim_" not in dim_name else None),
                         units=_dim_units(dim_name),
+                        axis=_dim_axis_map.get(dim_name),
+                        positive=_dim_positive_map.get(dim_name),
+                        data=_dim_data(dim_name, dim_size, shape, dim_names, attrs),
                     )
 
             if dim_names:
@@ -225,6 +382,62 @@ class File(Mapping[str, Variable]):
                     "DIMENSION_LIST",
                     tuple((dim_name,) for dim_name in dim_names),
                 )
+
+            # Detect rotated lat/lon grid from BPLAT (non-trivial pole position).
+            bplat = attrs.get("bplat")
+            bplon = attrs.get("bplon")
+            if bplat is not None and float(bplat) != 90.0:
+                _bplat = float(bplat)
+                _bplon = float(bplon)
+                if "rotated_latitude_longitude" not in self._grid_mapping_vars:
+                    self._grid_mapping_vars["rotated_latitude_longitude"] = _ScalarVar(
+                        "rotated_latitude_longitude",
+                        {
+                            "grid_mapping_name": "rotated_latitude_longitude",
+                            "grid_north_pole_latitude": np.array([_bplat]),
+                            "grid_north_pole_longitude": np.array([_bplon]),
+                        },
+                    )
+                # Build 2-D true lat/lon auxiliaries from rotated grid parameters.
+                if "latitude" not in self._grid_mapping_vars and len(shape) >= 2:
+                    ny, nx = shape[-2], shape[-1]
+                    y_name = dim_names[-2] if len(dim_names) >= 2 else "grid_latitude"
+                    x_name = dim_names[-1] if len(dim_names) >= 1 else "grid_longitude"
+                    bzy = float(attrs.get("bzy", 0.0))
+                    bdy = float(attrs.get("bdy", 1.0))
+                    bzx = float(attrs.get("bzx", 0.0))
+                    bdx = float(attrs.get("bdx", 1.0))
+                    rot_lat = bzy + bdy * np.arange(1, ny + 1, dtype=float)
+                    rot_lon = bzx + bdx * np.arange(1, nx + 1, dtype=float)
+                    true_lat, true_lon = _unrotated_latlon(rot_lat, rot_lon, _bplat, _bplon)
+                    dim_list_2d = ((y_name,), (x_name,))
+                    self._grid_mapping_vars["latitude"] = _AuxVar(
+                        "latitude",
+                        true_lat.astype(np.float64),
+                        {
+                            "CLASS": b"AUXILIARY_COORDINATE",
+                            "standard_name": "latitude",
+                            "units": "degrees_north",
+                            "DIMENSION_LIST": dim_list_2d,
+                        },
+                    )
+                    self._grid_mapping_vars["longitude"] = _AuxVar(
+                        "longitude",
+                        true_lon.astype(np.float64),
+                        {
+                            "CLASS": b"AUXILIARY_COORDINATE",
+                            "standard_name": "longitude",
+                            "units": "degrees_east",
+                            "DIMENSION_LIST": dim_list_2d,
+                        },
+                    )
+                attrs["coordinates"] = "latitude longitude"
+                attrs["grid_mapping"] = "rotated_latitude_longitude"
+                del attrs["bplat"]
+                del attrs["bplon"]
+            # Remove grid geometry attrs that served their purpose.
+            for _k in ("bzy", "bdy", "bzx", "bdx", "lbcode"):
+                attrs.pop(_k, None)
 
             variables[name] = Variable(
                 name=name,
@@ -279,6 +492,8 @@ class File(Mapping[str, Variable]):
                     "cat_range_allowed": self._cat_range_allowed,
                 },
             )
+            self._pyfive_dimension_scales = {}
+            self._grid_mapping_vars = {}
             self._variables = self._build_variables(variable_index)
             self._refresh_variable_views()
 

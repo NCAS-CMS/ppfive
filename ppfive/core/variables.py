@@ -153,8 +153,13 @@ def _enrich_cf_like_attrs(first: RecordInfo) -> dict[str, Any]:
         attrs["source"] = f"UM vn{um_version}"
 
     # Expose small context that may be useful for future um_condition support.
+    attrs["lbcode"] = int(ih[INDEX_LBCODE])
     attrs["bplat"] = float(rh[INDEX_BPLAT])
     attrs["bplon"] = float(rh[INDEX_BPLON])
+    attrs["bzy"] = float(rh[INDEX_BZY])
+    attrs["bdy"] = float(rh[INDEX_BDY])
+    attrs["bzx"] = float(rh[INDEX_BZX])
+    attrs["bdx"] = float(rh[INDEX_BDX])
 
     return attrs
 
