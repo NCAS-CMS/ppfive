@@ -9,9 +9,7 @@ from ppfive import File
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 EXCLUDED_SUFFIXES = {".nc", ".md"}
-KNOWN_XFAILS = {
-    "dk922a.pd1983aug": "ppfive grouping logic doesn't match cf-python for this fixture (m01s03i287 should have 9 z-levels, not 1)",
-}
+KNOWN_XFAILS = {}
 
 
 def _matches_cf_with_optional_z_flip(arr: np.ndarray, baseline: np.ndarray) -> bool:
@@ -19,10 +17,18 @@ def _matches_cf_with_optional_z_flip(arr: np.ndarray, baseline: np.ndarray) -> b
     if squeezed.shape != baseline.shape:
         return False
 
-    if np.allclose(squeezed, baseline, rtol=1e-6, atol=1e-6):
+    # Use dtype-scaled precision tolerance rather than a coarse absolute floor.
+    # This keeps checks strict across both small and large-magnitude fields.
+    if baseline.dtype.kind == "f":
+        eps = np.finfo(baseline.dtype).eps
+        rtol, atol = 32 * eps, 32 * eps
+    else:
+        rtol, atol = 1e-6, 1e-6
+
+    if np.allclose(squeezed, baseline, rtol=rtol, atol=atol):
         return True
 
-    if squeezed.ndim >= 2 and np.allclose(squeezed[:, ::-1, ...], baseline, rtol=1e-6, atol=1e-6):
+    if squeezed.ndim >= 2 and np.allclose(squeezed[:, ::-1, ...], baseline, rtol=rtol, atol=atol):
         return True
 
     return False

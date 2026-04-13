@@ -244,11 +244,38 @@ def _dtype_name(first: RecordInfo, word_size: int) -> str:
 
 
 def _z_key(rec: RecordInfo) -> tuple[Any, ...]:
-    return _within_var_key(rec)[13:16]
+    ih = rec.int_hdr
+    pseudo = int(ih[INDEX_LBUSER5])
+    if pseudo in (0, INT_MISSING_DATA):
+        pseudo = None
+
+    within = _within_var_key(rec)
+    return (pseudo, within[13], within[14], within[15])
 
 
 def _t_key(rec: RecordInfo) -> tuple[Any, ...]:
     return _within_var_key(rec)[:13]
+
+
+def _split_on_duplicate_tz_pairs(recs: list[RecordInfo]) -> list[list[RecordInfo]]:
+    """Split a grouped variable when (t,z) coordinate pairs are duplicated.
+
+    This mirrors the key behavior of the legacy disambiguation index in
+    process_vars.c for non-regular z/t record layouts.
+    """
+    seen: dict[tuple[Any, Any], int] = defaultdict(int)
+    buckets: dict[int, list[RecordInfo]] = defaultdict(list)
+
+    for rec in recs:
+        pair = (_t_key(rec), _z_key(rec))
+        bucket = seen[pair]
+        seen[pair] += 1
+        buckets[bucket].append(rec)
+
+    if len(buckets) <= 1:
+        return [recs]
+
+    return [buckets[index] for index in sorted(buckets)]
 
 
 def build_variable_index(
@@ -272,115 +299,140 @@ def build_variable_index(
     name_counts: dict[str, int] = defaultdict(int)
 
     for _, recs in grouped.items():
-        first = recs[0]
-        base = _stash_name(first)
-        name_counts[base] += 1
-        name = base if name_counts[base] == 1 else f"{base}_{name_counts[base]}"
+        for recs_split in _split_on_duplicate_tz_pairs(recs):
+            first = recs_split[0]
+            base = _stash_name(first)
+            name_counts[base] += 1
+            name = base if name_counts[base] == 1 else f"{base}_{name_counts[base]}"
 
-        z_levels = sorted({_z_key(r) for r in recs}, reverse=True)
-        t_steps = sorted({_t_key(r) for r in recs})
-        z_index = {k: i for i, k in enumerate(z_levels)}
-        t_index = {k: i for i, k in enumerate(t_steps)}
+            z_keys_set = {_z_key(r) for r in recs_split}
+            has_pseudo = any(zk[0] is not None for zk in z_keys_set)
+            z_levels = sorted(z_keys_set, reverse=not has_pseudo)
+            t_steps = sorted({_t_key(r) for r in recs_split})
+            z_index = {k: i for i, k in enumerate(z_levels)}
+            t_index = {k: i for i, k in enumerate(t_steps)}
 
-        ny = int(first.int_hdr[INDEX_LBROW])
-        nx = int(first.int_hdr[INDEX_LBNPT])
-        nz = len(z_levels)
-        nt = len(t_steps)
-        dtype = np.dtype(_dtype_name(first, word_size))
-        packing_modes = sorted({int(rec.int_hdr[INDEX_LBPACK]) % 10 for rec in recs})
-        compression_modes = sorted({(int(rec.int_hdr[INDEX_LBPACK]) // 10) % 10 for rec in recs})
-        chunk_records = []
+            ny = int(first.int_hdr[INDEX_LBROW])
+            nx = int(first.int_hdr[INDEX_LBNPT])
+            nz = len(z_levels)
+            nt = len(t_steps)
+            dtype = np.dtype(_dtype_name(first, word_size))
+            packing_modes = sorted({int(rec.int_hdr[INDEX_LBPACK]) % 10 for rec in recs_split})
+            compression_modes = sorted({(int(rec.int_hdr[INDEX_LBPACK]) // 10) % 10 for rec in recs_split})
+            z_first = has_pseudo and nt > 1 and nz > 1
+            chunk_records = []
 
-        for rec in recs:
-            chunk_records.append(
-                {
-                    "record": rec,
-                    "chunk_coords": (
-                        t_index[_t_key(rec)],
-                        z_index[_z_key(rec)],
-                        0,
-                        0,
-                    ),
-                }
-            )
+            for rec in recs_split:
+                ti = t_index[_t_key(rec)]
+                zi = z_index[_z_key(rec)]
+                chunk_coords = (zi, ti, 0, 0) if z_first else (ti, zi, 0, 0)
+                chunk_records.append(
+                    {
+                        "record": rec,
+                        "chunk_coords": chunk_coords,
+                    }
+                )
 
-        def _make_loader(group_recs, _nt, _nz, _ny, _nx, _dtype, _t_index, _z_index):
-            def _load():
-                out = np.empty((_nt, _nz, _ny, _nx), dtype=_dtype)
-                out.fill(np.nan if _dtype.kind == "f" else 0)
+            def _make_loader(group_recs, _nt, _nz, _ny, _nx, _dtype, _t_index, _z_index, _z_first):
+                def _load():
+                    out_shape = (_nz, _nt, _ny, _nx) if _z_first else (_nt, _nz, _ny, _nx)
+                    out = np.empty(out_shape, dtype=_dtype)
+                    out.fill(np.nan if _dtype.kind == "f" else 0)
 
-                thread_count = int(parallel_config.get("thread_count", 0) or 0)
-                cat_range_allowed = bool(parallel_config.get("cat_range_allowed", True))
+                    thread_count = int(parallel_config.get("thread_count", 0) or 0)
+                    cat_range_allowed = bool(parallel_config.get("cat_range_allowed", True))
 
-                # Strategy A: fsspec bulk range reads for unpacked records.
-                if thread_count != 0 and cat_range_allowed and isinstance(reader, FsspecReader):
-                    fh = getattr(reader, "_fh", None)
-                    actual_fh = getattr(fh, "fh", fh)
-                    if actual_fh is not None and hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
-                        path = actual_fh.path
-                        starts = [rec.data_offset for rec in group_recs]
-                        stops = [rec.data_offset + get_record_packed_nbytes(rec, word_size) for rec in group_recs]
-                        buffers = actual_fh.fs.cat_ranges([path] * len(group_recs), starts, stops)
+                    # Strategy A: fsspec bulk range reads for unpacked records.
+                    if thread_count != 0 and cat_range_allowed and isinstance(reader, FsspecReader):
+                        fh = getattr(reader, "_fh", None)
+                        actual_fh = getattr(fh, "fh", fh)
+                        if actual_fh is not None and hasattr(actual_fh, "fs") and hasattr(actual_fh.fs, "cat_ranges"):
+                            path = actual_fh.path
+                            starts = [rec.data_offset for rec in group_recs]
+                            stops = [rec.data_offset + get_record_packed_nbytes(rec, word_size) for rec in group_recs]
+                            buffers = actual_fh.fs.cat_ranges([path] * len(group_recs), starts, stops)
 
-                        items = list(zip(group_recs, buffers))
+                            items = list(zip(group_recs, buffers))
 
-                        def _decode_one(item):
-                            rec, raw = item
+                            def _decode_one(item):
+                                rec, raw = item
+                                ti = _t_index[_t_key(rec)]
+                                zi = _z_index[_z_key(rec)]
+                                values = decode_record_array_from_raw(raw, rec, word_size, byte_ordering)
+                                return ti, zi, values
+
+                            if thread_count > 1:
+                                with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                                    decoded = executor.map(_decode_one, items)
+                                    for ti, zi, values in decoded:
+                                        if _z_first:
+                                            out[zi, ti, :, :] = values.reshape((_ny, _nx))
+                                        else:
+                                            out[ti, zi, :, :] = values.reshape((_ny, _nx))
+                            else:
+                                for ti, zi, values in map(_decode_one, items):
+                                    if _z_first:
+                                        out[zi, ti, :, :] = values.reshape((_ny, _nx))
+                                    else:
+                                        out[ti, zi, :, :] = values.reshape((_ny, _nx))
+
+                            return out
+
+                    # Strategy B: local threaded reads using os.pread-backed reader.
+                    if thread_count != 0 and isinstance(reader, LocalPosixReader):
+                        def _read_one(rec):
                             ti = _t_index[_t_key(rec)]
                             zi = _z_index[_z_key(rec)]
-                            values = decode_record_array_from_raw(raw, rec, word_size, byte_ordering)
+                            values = read_record_array(reader, rec, word_size, byte_ordering)
                             return ti, zi, values
 
-                        if thread_count > 1:
-                            with ThreadPoolExecutor(max_workers=thread_count) as executor:
-                                decoded = executor.map(_decode_one, items)
-                                for ti, zi, values in decoded:
+                        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                            for ti, zi, values in executor.map(_read_one, group_recs):
+                                if _z_first:
+                                    out[zi, ti, :, :] = values.reshape((_ny, _nx))
+                                else:
                                     out[ti, zi, :, :] = values.reshape((_ny, _nx))
-                        else:
-                            for ti, zi, values in map(_decode_one, items):
-                                out[ti, zi, :, :] = values.reshape((_ny, _nx))
-
                         return out
 
-                # Strategy B: local threaded reads using os.pread-backed reader.
-                if thread_count != 0 and isinstance(reader, LocalPosixReader):
-                    def _read_one(rec):
+                    # Strategy C: serial fallback.
+                    for rec in group_recs:
                         ti = _t_index[_t_key(rec)]
                         zi = _z_index[_z_key(rec)]
                         values = read_record_array(reader, rec, word_size, byte_ordering)
-                        return ti, zi, values
-
-                    with ThreadPoolExecutor(max_workers=thread_count) as executor:
-                        for ti, zi, values in executor.map(_read_one, group_recs):
+                        if _z_first:
+                            out[zi, ti, :, :] = values.reshape((_ny, _nx))
+                        else:
                             out[ti, zi, :, :] = values.reshape((_ny, _nx))
                     return out
 
-                # Strategy C: serial fallback.
-                for rec in group_recs:
-                    ti = _t_index[_t_key(rec)]
-                    zi = _z_index[_z_key(rec)]
-                    values = read_record_array(reader, rec, word_size, byte_ordering)
-                    out[ti, zi, :, :] = values.reshape((_ny, _nx))
-                return out
+                return _load
 
-            return _load
-
-        variable_index[name] = {
-            "attrs": {
-                "stash_model": int(first.int_hdr[INDEX_LBUSER7]),
-                "stash_code": int(first.int_hdr[INDEX_LBUSER4]),
-                "packing_modes": packing_modes,
-                "compression_modes": compression_modes,
-                "is_packed": any(mode != 0 for mode in packing_modes),
-                "is_wgdos_packed": 1 in packing_modes,
-                **_enrich_cf_like_attrs(first),
-            },
-            "shape": (nt, nz, ny, nx),
-            "dtype": _dtype_name(first, word_size),
-            "chunk_shape": (1, 1, ny, nx),
-            "records": recs,
-            "chunk_records": chunk_records,
-            "data_loader": _make_loader(recs, nt, nz, ny, nx, dtype, t_index, z_index),
-        }
+            variable_index[name] = {
+                "attrs": {
+                    "stash_model": int(first.int_hdr[INDEX_LBUSER7]),
+                    "stash_code": int(first.int_hdr[INDEX_LBUSER4]),
+                    "packing_modes": packing_modes,
+                    "compression_modes": compression_modes,
+                    "is_packed": any(mode != 0 for mode in packing_modes),
+                    "is_wgdos_packed": 1 in packing_modes,
+                    **_enrich_cf_like_attrs(first),
+                },
+                "shape": (nz, nt, ny, nx) if z_first else (nt, nz, ny, nx),
+                "dtype": _dtype_name(first, word_size),
+                "chunk_shape": (1, 1, ny, nx),
+                "records": recs_split,
+                "chunk_records": chunk_records,
+                "data_loader": _make_loader(
+                    recs_split,
+                    nt,
+                    nz,
+                    ny,
+                    nx,
+                    dtype,
+                    t_index,
+                    z_index,
+                    z_first,
+                ),
+            }
 
     return variable_index
