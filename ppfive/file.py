@@ -11,6 +11,7 @@ import numpy as np
 from .core import detect_file_type, scan_ff_headers, scan_pp_headers
 from .core.variables import build_variable_index
 from .io.base import ByteReader
+from .io.fileobj import FileObjReader
 from .io.local import LocalPosixReader
 from .variable import Variable
 
@@ -42,7 +43,7 @@ class File(Mapping[str, Variable]):
 
     def __init__(
         self,
-        filename: str | ByteReader,
+        filename: str | ByteReader | Any,
         mode: str = "r",
         metadata_buffer_size: int = 1,
         disable_os_cache: bool = False,
@@ -58,6 +59,9 @@ class File(Mapping[str, Variable]):
                 raise ValueError("Do not provide both filename as ByteReader and reader=")
             reader = filename
             filename = getattr(reader, "path", "<byte-reader>")
+        elif reader is None and hasattr(filename, "read") and hasattr(filename, "seek"):
+            reader = FileObjReader(filename)
+            filename = getattr(filename, "name", "<fileobj>")
 
         self.filename = str(Path(filename))
         self.mode = mode

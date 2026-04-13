@@ -1,5 +1,6 @@
 from .base import ByteReader
+from .fileobj import FileObjReader
 from .fsspec_reader import FsspecReader
 from .local import LocalPosixReader
 
-__all__ = ["ByteReader", "LocalPosixReader", "FsspecReader"]
+__all__ = ["ByteReader", "LocalPosixReader", "FsspecReader", "FileObjReader"]
