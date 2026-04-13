@@ -20,7 +20,9 @@ dependencies = [
 [project.optional-dependencies]
 io = ["fsspec>=2024.3.0"]
 test = [
-	"cf-python>=3.16.0",
+	"cf-python @ git+https://github.com/davidhassell/cf-python.git@kerchunk-read",
+	"cfdm @ git+https://github.com/davidhassell/cfdm.git@pyfive-netcdf",
+	"pyfive @ git+https://github.com/NCAS-CMS/pyfive.git@pbtree2",
 	"pytest>=8",
 	"pytest-cov>=5",
 ]
