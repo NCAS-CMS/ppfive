@@ -8,6 +8,14 @@ from ppfive import File
 from ppfive.io.fsspec_reader import FsspecReader
 
 
+def _data_variable_names(f: File) -> list[str]:
+    return [
+        name
+        for name, variable in f.variables.items()
+        if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+    ]
+
+
 def test_fsspec_reader_read_at(tmp_path: Path):
     p = tmp_path / "data.bin"
     p.write_bytes(b"abcdefghij")
@@ -23,7 +31,7 @@ def test_file_can_parse_via_fsspec_reader():
 
     with FsspecReader(fs, str(path)) as reader:
         f = File(str(path), reader=reader)
-        names = list(f)
+        names = _data_variable_names(f)
         assert names
         arr = f[names[0]][:]
 
@@ -36,11 +44,11 @@ def _read_all_variables(path: Path, *, use_fsspec: bool) -> dict[str, np.ndarray
         fs = fsspec.filesystem("file")
         with FsspecReader(fs, str(path)) as reader:
             with File(str(path), reader=reader) as f:
-                names = list(f)
+                names = _data_variable_names(f)
                 return {name: np.asarray(f[name][:]) for name in names}
 
     with File(str(path)) as f:
-        names = list(f)
+        names = _data_variable_names(f)
         return {name: np.asarray(f[name][:]) for name in names}
 
 

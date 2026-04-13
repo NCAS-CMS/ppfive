@@ -20,6 +20,14 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 PP_PATH = DATA_DIR / "test2.pp"
 
 
+def _data_variable_names(f: File) -> list[str]:
+    return [
+        name
+        for name, variable in f.variables.items()
+        if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -47,7 +55,7 @@ def test_file_accepts_raw_open_builtin():
     """ppfive.File should accept a built-in open() handle (has .read and .seek)."""
     with open(PP_PATH, "rb") as fh:
         f = File(fh)
-        names = list(f)
+        names = _data_variable_names(f)
         assert names
         arr = f[names[0]][:]
 
@@ -60,7 +68,7 @@ def test_file_accepts_bytesio():
     data = PP_PATH.read_bytes()
     buf = BytesIO(data)
     f = File(buf)
-    names = list(f)
+    names = _data_variable_names(f)
     assert names
     arr = f[names[0]][:]
     assert arr.shape == (3, 5, 110, 106)
@@ -71,7 +79,7 @@ def test_file_accepts_minimal_fileobj():
     data = PP_PATH.read_bytes()
     fobj = _MinimalFileObj(data)
     f = File(fobj)
-    names = list(f)
+    names = _data_variable_names(f)
     assert names
 
 
@@ -95,7 +103,7 @@ def test_file_accepts_fsspec_local_handle():
     fs = fsspec.filesystem("file")
     with fs.open(str(PP_PATH), "rb") as fh:
         f = File(fh)
-        names = list(f)
+        names = _data_variable_names(f)
         assert names
         arr = f[names[0]][:]
 
@@ -106,12 +114,16 @@ def test_file_accepts_fsspec_local_handle():
 def test_fileobj_parity_with_path():
     """Reading via a raw fsspec handle should return identical data to path-based open."""
     with File(PP_PATH) as f_path:
-        expected = {name: np.asarray(f_path[name][:]) for name in f_path}
+        expected = {
+            name: np.asarray(f_path[name][:]) for name in _data_variable_names(f_path)
+        }
 
     fs = fsspec.filesystem("file")
     with fs.open(str(PP_PATH), "rb") as fh:
         f_fh = File(fh)
-        result = {name: np.asarray(f_fh[name][:]) for name in f_fh}
+        result = {
+            name: np.asarray(f_fh[name][:]) for name in _data_variable_names(f_fh)
+        }
 
     assert list(result) == list(expected)
     for name in expected:

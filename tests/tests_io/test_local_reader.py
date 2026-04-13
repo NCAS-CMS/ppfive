@@ -19,7 +19,11 @@ def test_file_accepts_local_reader_as_first_argument():
 
     with LocalPosixReader(path) as reader:
         f = File(reader)
-        names = list(f)
+        names = [
+            name
+            for name, variable in f.variables.items()
+            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        ]
         arr = f[names[0]][:]
 
     assert names

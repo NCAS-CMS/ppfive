@@ -12,6 +12,14 @@ EXCLUDED_SUFFIXES = {".nc", ".md"}
 KNOWN_XFAILS = {}
 
 
+def _data_variable_names(f: File) -> list[str]:
+    return [
+        name
+        for name, variable in f.variables.items()
+        if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+    ]
+
+
 def _matches_cf_with_optional_z_flip(arr: np.ndarray, baseline: np.ndarray) -> bool:
     squeezed = np.squeeze(arr)
     if squeezed.shape != baseline.shape:
@@ -63,7 +71,7 @@ def test_real_um_file_data_parity_with_cf(path: Path):
         return
 
     with File(str(path)) as f:
-        names = list(f)
+        names = _data_variable_names(f)
         assert names, f"Expected at least one parsed variable in {path.name}"
 
         fields = cf.read(str(path))

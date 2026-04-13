@@ -9,7 +9,12 @@ def test_variable_id_exposes_pyfive_like_chunk_index_for_unpacked_file():
     path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
 
     with File(str(path)) as f:
-        variable = f[list(f)[0]]
+        name = next(
+            name
+            for name, variable in f.variables.items()
+            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        )
+        variable = f[name]
         idx = variable.id.index
 
         assert variable.chunks == (1, 1, 110, 106)
@@ -33,7 +38,12 @@ def test_unpacked_chunk_index_can_back_a_kerchunk_like_reconstruction():
     path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
 
     with File(str(path)) as f:
-        variable = f[list(f)[0]]
+        name = next(
+            name
+            for name, variable in f.variables.items()
+            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        )
+        variable = f[name]
         direct = variable[:]
         refs = {
             "/".join(str(x) for x in chunk_offset): {

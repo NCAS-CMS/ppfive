@@ -49,7 +49,11 @@ def test_variable_loader_reads_data_and_reshapes(tmp_path):
     p.write_bytes(rec1 + rec2)
 
     with File(str(p)) as f:
-        names = list(f)
+        names = [
+            name
+            for name, variable in f.variables.items()
+            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        ]
         assert names == ["m01s16i004"]
 
         arr = f[names[0]][:]

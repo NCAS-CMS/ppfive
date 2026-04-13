@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 
+from .core.constants import INT_MISSING_DATA
 from .core import detect_file_type, scan_ff_headers, scan_pp_headers
 from .core.variables import build_variable_index
 from .io.base import ByteReader
@@ -18,10 +19,38 @@ from .variable import Variable
 logger = logging.getLogger(__name__)
 
 
+class _PyfiveAttrs(dict):
+    """Attribute mapping tuned for cfdm/p5netcdf compatibility.
+
+    Keep normal Python `str` values for direct user access, but expose those
+    strings as byte scalars when iterating `.items()` so cfdm's p5netcdf
+    adapter formats them as scalar text instead of character arrays.
+    """
+
+    @staticmethod
+    def _coerce_for_items(value: Any) -> Any:
+        if isinstance(value, str):
+            return np.bytes_(value)
+
+        return value
+
+    def items(self):
+        for key, value in super().items():
+            yield key, self._coerce_for_items(value)
+
+
 class _DimensionScale:
     """Internal pyfive-like dimension-scale dataset for cfdm bridging."""
 
-    def __init__(self, name: str, size: int, file_obj: "File"):
+    def __init__(
+        self,
+        name: str,
+        size: int,
+        file_obj: "File",
+        *,
+        standard_name: str | None = None,
+        units: str | None = None,
+    ):
         self.name = name
         self.file = file_obj
         self.shape = (int(size),)
@@ -30,9 +59,13 @@ class _DimensionScale:
         self.chunks = None
         self.attrs = {
             "CLASS": b"DIMENSION_SCALE",
-            "NAME": b"This is a netCDF dimension but not a netCDF variable",
+            "NAME": b"netCDF dimension coordinate variable",
             "_Netcdf4Dimid": 0,
         }
+        if standard_name:
+            self.attrs["standard_name"] = np.bytes_(standard_name)
+        if units:
+            self.attrs["units"] = np.bytes_(units)
 
     def __getitem__(self, key):
         return np.arange(self.shape[0], dtype=self.dtype)[key]
@@ -115,23 +148,77 @@ class File(Mapping[str, Variable]):
             self.word_size = None
 
         self._variables = self._build_variables(variable_index or {})
-        self.variables = self._variables
+        self._refresh_variable_views()
+
+    def _refresh_variable_views(self) -> None:
+        all_variables: dict[str, Any] = {}
+        all_variables.update(self._variables)
+        all_variables.update(self._pyfive_dimension_scales)
+        self.variables = all_variables
 
     def _build_variables(self, variable_index: dict[str, dict[str, Any]]) -> dict[str, Variable]:
-        def _dim_names(shape: tuple[int, ...]) -> tuple[str, ...]:
-            return tuple(f"dim_{axis}_{size}" for axis, size in enumerate(shape))
+        def _vertical_dim_name(lbvc: int) -> str:
+            if lbvc == 8:
+                return "air_pressure"
+            return "model_level_number"
+
+        def _semantic_dim_names(shape: tuple[int, ...], attrs: Mapping[str, Any]) -> tuple[str, ...]:
+            if len(shape) != 4:
+                return tuple(f"dim_{axis}_{size}" for axis, size in enumerate(shape))
+
+            lbvc = int(attrs.get("lbvc", 0) or 0)
+            lbuser5 = int(attrs.get("lbuser5", 0) or 0)
+            has_pseudo = lbuser5 not in (0, INT_MISSING_DATA)
+            z_name = "pseudo_level" if has_pseudo else _vertical_dim_name(lbvc)
+
+            # Mirrors build_variable_index ordering for pseudo-level fields.
+            z_first = has_pseudo and shape[0] > 1 and shape[1] > 1
+            if z_first:
+                return (z_name, "time", "grid_latitude", "grid_longitude")
+
+            return ("time", z_name, "grid_latitude", "grid_longitude")
+
+        def _dim_units(name: str) -> str | None:
+            if name == "air_pressure":
+                return "Pa"
+            if name in ("grid_latitude", "grid_longitude"):
+                return "degrees"
+            return None
+
+        def _dim_standard_name(name: str) -> str | None:
+            if name.startswith("dim_"):
+                return None
+            return name
+
+        def _resolve_dim_name(base_name: str, dim_size: int) -> str:
+            existing = self._pyfive_dimension_scales.get(base_name)
+            if existing is None:
+                return base_name
+            if existing.shape == (int(dim_size),):
+                return base_name
+
+            return f"{base_name}_{dim_size}"
 
         variables: dict[str, Variable] = {}
         for name, meta in variable_index.items():
             shape = tuple(meta.get("shape", ()))
-            dim_names = _dim_names(shape)
+            attrs = _PyfiveAttrs(dict(meta.get("attrs", {})))
+
+            raw_dim_names = _semantic_dim_names(shape, attrs)
+            dim_names = tuple(
+                _resolve_dim_name(dim_name, dim_size)
+                for dim_name, dim_size in zip(raw_dim_names, shape)
+            )
             for dim_name, dim_size in zip(dim_names, shape):
                 if dim_name not in self._pyfive_dimension_scales:
                     self._pyfive_dimension_scales[dim_name] = _DimensionScale(
-                        dim_name, dim_size, self
+                        dim_name,
+                        dim_size,
+                        self,
+                        standard_name=(dim_name if "dim_" not in dim_name else None),
+                        units=_dim_units(dim_name),
                     )
 
-            attrs = dict(meta.get("attrs", {}))
             if dim_names:
                 # Mirrors the structure expected by cfdm's p5netcdf adapter.
                 attrs.setdefault(
@@ -193,6 +280,7 @@ class File(Mapping[str, Variable]):
                 },
             )
             self._variables = self._build_variables(variable_index)
+            self._refresh_variable_views()
 
     def __getitem__(self, key: str) -> Variable:
         if not isinstance(key, str):
@@ -209,22 +297,16 @@ class File(Mapping[str, Variable]):
         if "/" in path:
             raise KeyError(f"Nested paths are not supported: {key!r}")
 
-        if path in self._pyfive_dimension_scales:
-            return self._pyfive_dimension_scales[path]
-
-        return self._variables[path]
+        return self.variables[path]
 
     def items(self):
-        for name, variable in self._variables.items():
-            yield name, variable
-        for name, dim in self._pyfive_dimension_scales.items():
-            yield name, dim
+        return self.variables.items()
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self._variables)
+        return iter(self.variables)
 
     def __len__(self) -> int:
-        return len(self._variables)
+        return len(self.variables)
 
     def __enter__(self) -> "File":
         return self

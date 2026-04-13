@@ -19,7 +19,13 @@ def test_file_iterates_variable_names():
         },
     )
 
-    assert list(f) == ["temp"]
+    data_names = [
+        name
+        for name, variable in f.variables.items()
+        if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+    ]
+    assert data_names == ["temp"]
+    assert "temp" in list(f)
     v = f["temp"]
     assert v.shape == (2, 2)
     assert v.dtype == np.dtype("float64")

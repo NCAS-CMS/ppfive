@@ -16,7 +16,11 @@ def test_reference_dict_materialization_matches_direct_read(filename):
     path = Path(__file__).resolve().parents[1] / "data" / filename
 
     with File(str(path)) as f:
-        name = list(f)[0]
+        name = next(
+            name
+            for name, variable in f.variables.items()
+            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        )
         variable = f[name]
         direct = variable[:]
         refs = variable.to_reference_dict()
@@ -34,7 +38,11 @@ def test_file_reference_dict_contains_variable_export():
 
     with File(str(path)) as f:
         export = f.to_reference_dict()
-        name = list(f)[0]
+        name = next(
+            name
+            for name, variable in f.variables.items()
+            if variable.attrs.get("CLASS") != b"DIMENSION_SCALE"
+        )
 
     assert export["version"] == 1
     assert export["path"] == str(path)
