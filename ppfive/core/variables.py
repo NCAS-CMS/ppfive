@@ -25,9 +25,11 @@ from .constants import (
     INDEX_LBDAY,
     INDEX_LBDAYD,
     INDEX_LBFT,
+    INDEX_LBFC,
     INDEX_LBHEM,
     INDEX_LBHR,
     INDEX_LBHRD,
+    INDEX_LBREL,
     INDEX_LBLEV,
     INDEX_LBMIN,
     INDEX_LBMIND,
@@ -38,7 +40,9 @@ from .constants import (
     INDEX_LBPROC,
     INDEX_LBROW,
     INDEX_LBTIM,
+    INDEX_LBSRCE,
     INDEX_LBUSER4,
+    INDEX_LBUSER5,
     INDEX_LBUSER7,
     INDEX_LBVC,
     INDEX_LBYR,
@@ -52,6 +56,128 @@ from .data import (
 )
 from .interpret import get_type
 from .models import RecordInfo
+
+_STASH_LOOKUP = None
+_STASH_LOOKUP_READY = False
+
+
+def _infer_um_version(first: RecordInfo) -> int:
+    ih = first.int_hdr
+    header_um_version, _ = divmod(int(ih[INDEX_LBSRCE]), 10000)
+    if header_um_version > 0:
+        return int(header_um_version)
+
+    # Mirrors legacy fallback for older release-2 style headers.
+    if int(ih[INDEX_LBREL]) == 2:
+        return 405
+
+    return 0
+
+
+def _load_stash_lookup():
+    global _STASH_LOOKUP, _STASH_LOOKUP_READY
+    if _STASH_LOOKUP_READY:
+        return _STASH_LOOKUP
+
+    _STASH_LOOKUP_READY = True
+    try:
+        from cf.constants import _stash2standard_name
+        from cf.functions import load_stash2standard_name
+
+        load_stash2standard_name()
+        _STASH_LOOKUP = _stash2standard_name
+    except Exception:
+        _STASH_LOOKUP = None
+
+    return _STASH_LOOKUP
+
+
+def _um_identity(first: RecordInfo) -> tuple[str | None, int, str]:
+    ih = first.int_hdr
+    model = int(ih[INDEX_LBUSER7])
+    stash = int(ih[INDEX_LBUSER4])
+    um_version = _infer_um_version(first)
+
+    if stash:
+        section, item = divmod(stash, 1000)
+        um_stash_source = f"m{model:02d}s{section:02d}i{item:03d}"
+    else:
+        um_stash_source = None
+
+    if um_stash_source is not None:
+        identity = f"UM_{um_stash_source}_vn{um_version}"
+    else:
+        identity = f"UM_{model}_fc{int(ih[INDEX_LBFC])}_vn{um_version}"
+
+    return um_stash_source, um_version, identity
+
+
+def _enrich_cf_like_attrs(first: RecordInfo) -> dict[str, Any]:
+    ih = first.int_hdr
+    rh = first.real_hdr
+    um_stash_source, um_version, identity = _um_identity(first)
+
+    attrs: dict[str, Any] = {
+        "um_version": um_version,
+        "um_identity": identity,
+        "lbrel": int(ih[INDEX_LBREL]),
+        "lbfc": int(ih[INDEX_LBFC]),
+        "lbvc": int(ih[INDEX_LBVC]),
+        "lbuser5": int(ih[INDEX_LBUSER5]),
+    }
+
+    if um_stash_source is not None:
+        attrs["um_stash_source"] = um_stash_source
+
+    stash_lookup = _load_stash_lookup()
+    stash = int(ih[INDEX_LBUSER4])
+    submodel = int(ih[INDEX_LBUSER7])
+    if stash_lookup and stash:
+        for entry in stash_lookup.get((submodel, stash), ()):
+            (
+                long_name,
+                units,
+                valid_from,
+                valid_to,
+                standard_name,
+                cf_info,
+                um_condition,
+            ) = entry
+
+            if valid_from is not None and um_version < valid_from:
+                continue
+            if valid_to is not None and um_version > valid_to:
+                continue
+
+            # Keep this portable and deterministic: only accept unconditional
+            # records for now, without importing cf-construct logic.
+            if um_condition:
+                continue
+
+            if standard_name:
+                attrs["standard_name"] = standard_name
+            if long_name:
+                attrs["long_name"] = long_name.rstrip()
+            if units:
+                attrs["units"] = units
+            if cf_info:
+                attrs["cf_info"] = dict(cf_info)
+
+            break
+
+    if "long_name" not in attrs:
+        attrs["long_name"] = identity
+
+    # Surface this for debugging/selection parity with legacy logic.
+    source_code = int(ih[INDEX_LBSRCE]) % 10000
+    if source_code == 1111 and um_version:
+        attrs["source"] = f"UM vn{um_version}"
+
+    # Expose small context that may be useful for future um_condition support.
+    attrs["bplat"] = float(rh[INDEX_BPLAT])
+    attrs["bplon"] = float(rh[INDEX_BPLON])
+
+    return attrs
 
 
 def _float_key(val: float) -> float:
@@ -268,6 +394,7 @@ def build_variable_index(
                 "compression_modes": compression_modes,
                 "is_packed": any(mode != 0 for mode in packing_modes),
                 "is_wgdos_packed": 1 in packing_modes,
+                **_enrich_cf_like_attrs(first),
             },
             "shape": (nt, nz, ny, nx),
             "dtype": _dtype_name(first, word_size),
