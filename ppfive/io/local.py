@@ -62,6 +62,10 @@ class LocalPosixReader(ByteReader):
         if nbytes < 0:
             raise ValueError("nbytes must be >= 0")
 
+        if self._fd is None:
+            self._fd = os.open(self.path, os.O_RDONLY)
+            self._set_cache_policy()
+
         return os.pread(self._fd, nbytes, offset)
 
     def close(self) -> None:

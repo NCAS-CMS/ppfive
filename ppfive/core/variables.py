@@ -56,9 +56,7 @@ from .data import (
 )
 from .interpret import get_type
 from .models import RecordInfo
-
-_STASH_LOOKUP = None
-_STASH_LOOKUP_READY = False
+from .stash_table import stash_records
 
 
 def _infer_um_version(first: RecordInfo) -> int:
@@ -72,24 +70,6 @@ def _infer_um_version(first: RecordInfo) -> int:
         return 405
 
     return 0
-
-
-def _load_stash_lookup():
-    global _STASH_LOOKUP, _STASH_LOOKUP_READY
-    if _STASH_LOOKUP_READY:
-        return _STASH_LOOKUP
-
-    _STASH_LOOKUP_READY = True
-    try:
-        from cf.constants import _stash2standard_name
-        from cf.functions import load_stash2standard_name
-
-        load_stash2standard_name()
-        _STASH_LOOKUP = _stash2standard_name
-    except Exception:
-        _STASH_LOOKUP = None
-
-    return _STASH_LOOKUP
 
 
 def _um_identity(first: RecordInfo) -> tuple[str | None, int, str]:
@@ -129,11 +109,10 @@ def _enrich_cf_like_attrs(first: RecordInfo) -> dict[str, Any]:
     if um_stash_source is not None:
         attrs["um_stash_source"] = um_stash_source
 
-    stash_lookup = _load_stash_lookup()
     stash = int(ih[INDEX_LBUSER4])
     submodel = int(ih[INDEX_LBUSER7])
-    if stash_lookup and stash:
-        for entry in stash_lookup.get((submodel, stash), ()):
+    if stash:
+        for entry in stash_records(submodel, stash):
             (
                 long_name,
                 units,

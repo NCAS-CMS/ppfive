@@ -181,6 +181,8 @@ class Variable:
     id: VariableID = field(init=False, repr=False)
 
     def __post_init__(self):
+        if self.dtype is not None:
+            self.dtype = np.dtype(self.dtype)
         self.id = VariableID(self)
         if self.parent is None:
             self.parent = self.file

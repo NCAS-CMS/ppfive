@@ -6,6 +6,8 @@ from pathlib import Path
 import posixpath
 from typing import Any
 
+import numpy as np
+
 from .core import detect_file_type, scan_ff_headers, scan_pp_headers
 from .core.variables import build_variable_index
 from .io.base import ByteReader
@@ -13,6 +15,26 @@ from .io.local import LocalPosixReader
 from .variable import Variable
 
 logger = logging.getLogger(__name__)
+
+
+class _DimensionScale:
+    """Internal pyfive-like dimension-scale dataset for cfdm bridging."""
+
+    def __init__(self, name: str, size: int, file_obj: "File"):
+        self.name = name
+        self.file = file_obj
+        self.shape = (int(size),)
+        self.dtype = np.dtype("int32")
+        self.maxshape = self.shape
+        self.chunks = None
+        self.attrs = {
+            "CLASS": b"DIMENSION_SCALE",
+            "NAME": b"This is a netCDF dimension but not a netCDF variable",
+            "_Netcdf4Dimid": 0,
+        }
+
+    def __getitem__(self, key):
+        return np.arange(self.shape[0], dtype=self.dtype)[key]
 
 
 class File(Mapping[str, Variable]):
@@ -49,6 +71,13 @@ class File(Mapping[str, Variable]):
         self._records = []
         self._thread_count = 0
         self._cat_range_allowed = True
+        self.parent = None
+        self.name = "/"
+        self.path = "/"
+        self.attrs: dict[str, Any] = {}
+        self.groups: dict[str, Any] = {}
+        self.dimensions: dict[str, Any] = {}
+        self._pyfive_dimension_scales: dict[str, _DimensionScale] = {}
 
         if variable_index is None:
             file_type = detect_file_type(self._reader)
@@ -82,14 +111,34 @@ class File(Mapping[str, Variable]):
             self.word_size = None
 
         self._variables = self._build_variables(variable_index or {})
+        self.variables = self._variables
 
     def _build_variables(self, variable_index: dict[str, dict[str, Any]]) -> dict[str, Variable]:
+        def _dim_names(shape: tuple[int, ...]) -> tuple[str, ...]:
+            return tuple(f"dim_{axis}_{size}" for axis, size in enumerate(shape))
+
         variables: dict[str, Variable] = {}
         for name, meta in variable_index.items():
+            shape = tuple(meta.get("shape", ()))
+            dim_names = _dim_names(shape)
+            for dim_name, dim_size in zip(dim_names, shape):
+                if dim_name not in self._pyfive_dimension_scales:
+                    self._pyfive_dimension_scales[dim_name] = _DimensionScale(
+                        dim_name, dim_size, self
+                    )
+
+            attrs = dict(meta.get("attrs", {}))
+            if dim_names:
+                # Mirrors the structure expected by cfdm's p5netcdf adapter.
+                attrs.setdefault(
+                    "DIMENSION_LIST",
+                    tuple((dim_name,) for dim_name in dim_names),
+                )
+
             variables[name] = Variable(
                 name=name,
-                attrs=dict(meta.get("attrs", {})),
-                shape=tuple(meta.get("shape", ())),
+                attrs=attrs,
+                shape=shape,
                 dtype=meta.get("dtype"),
                 chunk_shape=meta.get("chunk_shape"),
                 data_loader=meta.get("data_loader"),
@@ -156,7 +205,16 @@ class File(Mapping[str, Variable]):
         if "/" in path:
             raise KeyError(f"Nested paths are not supported: {key!r}")
 
+        if path in self._pyfive_dimension_scales:
+            return self._pyfive_dimension_scales[path]
+
         return self._variables[path]
+
+    def items(self):
+        for name, variable in self._variables.items():
+            yield name, variable
+        for name, dim in self._pyfive_dimension_scales.items():
+            yield name, dim
 
     def __iter__(self) -> Iterator[str]:
         return iter(self._variables)

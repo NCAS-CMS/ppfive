@@ -22,7 +22,7 @@ def test_file_iterates_variable_names():
     assert list(f) == ["temp"]
     v = f["temp"]
     assert v.shape == (2, 2)
-    assert v.dtype == "f8"
+    assert v.dtype == np.dtype("float64")
     assert v.chunk_shape == (1, 2)
     assert v.chunks == (1, 2)
     assert v.attrs["units"] == "K"
