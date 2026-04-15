@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import numpy as np
+from pyfive.indexing import OrthogonalIndexer, ZarrArrayStub, replace_ellipsis
 
-from .core.data import read_record_raw
+from .core.data import read_record_array, read_record_raw
 from .core.interpret import get_extra_data_length
 from .core.models import StoreInfo
 
@@ -31,6 +32,8 @@ class VariableID:
         self._variable = variable
         self._index_cache = None
         self._nthindex = None
+        self._record_cache = None
+        self._chunk_data_cache = None
 
     @property
     def shape(self):
@@ -62,6 +65,8 @@ class VariableID:
 
         if self._index_cache is None:
             index = {}
+            record_cache = {}
+            chunk_data_cache = {}
             for item in self._variable.chunk_records:
                 rec = item["record"]
                 chunk_offset = tuple(int(x) for x in item["chunk_coords"])
@@ -75,12 +80,63 @@ class VariableID:
                     ),
                 )
                 index[chunk_offset] = info
+                record_cache[chunk_offset] = rec
             self._index_cache = index
             self._nthindex = sorted(index)
+            self._record_cache = record_cache
+            self._chunk_data_cache = chunk_data_cache
 
         return True
 
+    def _is_full_selection(self, args) -> bool:
+        if not self._variable.shape:
+            return True
+
+        selection = replace_ellipsis(args, self._variable.shape)
+        return all(isinstance(s, slice) and s == slice(None) for s in selection)
+
+    def _get_selection_via_chunks(self, args):
+        array = ZarrArrayStub(self.shape, self.chunks)
+        indexer = OrthogonalIndexer(args, array)
+        out = np.empty(indexer.shape, dtype=self.dtype)
+
+        for chunk_coords, chunk_selection, out_selection in indexer:
+            chunk_offset = tuple(
+                int(c * cs) for c, cs in zip(chunk_coords, self._variable.chunk_shape)
+            )
+            rec = self._record_cache.get(chunk_offset)
+            if rec is None:
+                raise OSError(f"Chunk coordinates not found in record index: {chunk_offset}")
+
+            chunk_shape = tuple(
+                min(int(cs), int(dim) - int(off))
+                for off, cs, dim in zip(chunk_offset, self._variable.chunk_shape, self._variable.shape)
+            )
+
+            chunk_data = self._chunk_data_cache.get(chunk_offset)
+            if chunk_data is None:
+                chunk_data = read_record_array(
+                    self._variable.file._reader,
+                    rec,
+                    self._variable.file.word_size,
+                    self._variable.file.byte_ordering,
+                ).reshape(chunk_shape)
+                self._chunk_data_cache[chunk_offset] = chunk_data
+
+            out[out_selection] = chunk_data[chunk_selection]
+
+        return out
+
     def get_data(self, args=(), fillvalue=None):
+        del fillvalue
+
+        # If the full array has already been loaded, serve slices from it.
+        if self._variable._data_cache is not None:
+            return self._variable._data_cache[args]
+
+        if self.__chunk_init_check() and not self._is_full_selection(args):
+            return self._get_selection_via_chunks(args)
+
         data = self._variable._materialize()
         if data is None:
             return None
