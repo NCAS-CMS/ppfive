@@ -62,3 +62,35 @@ def test_fsspec_bulk_range_matches_serial_for_wgdos_packed_data():
         parallel = f[name][:]
 
     assert np.allclose(parallel, serial, rtol=1e-6, atol=1e-6)
+
+
+def test_local_parallel_slice_matches_serial():
+    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+
+    with File(str(path)) as f_serial:
+        name = _first_data_variable_name(f_serial)
+        serial = f_serial[name][0, :, :, :]
+
+    with File(str(path)) as f_parallel:
+        f_parallel.set_parallelism(thread_count=4)
+        name = _first_data_variable_name(f_parallel)
+        parallel = f_parallel[name][0, :, :, :]
+
+    assert np.allclose(parallel, serial, rtol=1e-6, atol=1e-6)
+
+
+def test_fsspec_bulk_range_slice_matches_serial_for_unpacked_data():
+    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+
+    with File(str(path)) as f_serial:
+        name = _first_data_variable_name(f_serial)
+        serial = f_serial[name][0, :, :, :]
+
+    fs = fsspec.filesystem("file")
+    with FsspecReader(fs, str(path)) as reader:
+        f = File(str(path), reader=reader)
+        f.set_parallelism(thread_count=4, cat_range_allowed=True)
+        name = _first_data_variable_name(f)
+        parallel = f[name][0, :, :, :]
+
+    assert np.allclose(parallel, serial, rtol=1e-6, atol=1e-6)

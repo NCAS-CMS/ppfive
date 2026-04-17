@@ -572,7 +572,7 @@ class File(Mapping[str, Variable]):
     def close(self) -> None:
         if self._owns_reader and self._reader is not None:
             self._reader.close()
-            self._reader = None
+            # Keep _reader reference so variables can re-open on demand after close.
 
     def set_parallelism(self, thread_count: int = 5, cat_range_allowed: bool = True):
         """Configure experimental chunk/record read parallelism."""
