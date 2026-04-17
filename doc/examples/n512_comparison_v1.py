@@ -1,18 +1,24 @@
+import logging
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
 import cf
 import time
 import ppfive
+from pathlib import Path
 
-EXAMPLE_FILE = "/Volumes/Lawrence4TB/xjanpa.pa19910301"
+#EXAMPLE_FILE = "/Volumes/Lawrence4TB/xjanpa.pa19910301"
+EXAMPLE_FILE = str(Path.home()/"data/xjanpa.pa19910301")
 
 def timecf(path):
     t0 = time.perf_counter()
-    r = cf.read(path)
+    r = cf.read(path,dask_chunks=None)
     return time.perf_counter() - t0, r
 
 def timep5(path):
     t0 = time.perf_counter()
     with ppfive.File(path) as f:
-        r = cf.read(f)
+        f.set_parallelism(thread_count=4)
+        r = cf.read(f, dask_chunks=None)
     return time.perf_counter() - t0, r
 
 def compare(path):
@@ -26,19 +32,23 @@ def compare(path):
         print('CF Variable identities:', set(cfdict))
         print('P5 Variable identities:', set(p5dict))
 
-    results = [('meta', cf_time, p5_time)]
+    results = [('meta', cf_time, p5_time, '', '')]
     keys = sorted(cfdict.keys() & p5dict.keys())
     for k in keys:
         p0 = time.perf_counter()
-        cfm = cfdict[k].array.max()
+        cfm = cfdict[k].array
         p1 = time.perf_counter()
-        p5m = p5dict[k].array.max()
+        cfm = cfm.max()
+        p1a = time.perf_counter()
+        p5m = p5dict[k].array
         p2 = time.perf_counter()
+        p5m = p5m.max()
         if cfm != p5m:
             raise ValueError(f"Variable {k} has different max values: CF={cfm} P5={p5m}")
-        results.append((k, p1-p0,p2-p1))
+        results.append((k, p1-p0,p2-p1a,p5dict[k].get_property("is_wgdos_packed"), str(p5dict[k].shape).strip()))
     for r in results:
-        print(f"{r[0]:<20} CF time: {r[1]:.3f} sec, P5 time: {r[2]:.3f} sec")
+        val = 'Tru' if r[3] else 'Fal'
+        print(f"{r[0]:<26} CF: {r[1]:.2f}s, P5: {r[2]:.2f}s (WGD={val}, {r[4]})")
 
 if __name__ == "__main__":
     N_TRIALS = 2

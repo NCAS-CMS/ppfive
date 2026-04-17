@@ -11,9 +11,8 @@ import time
 import ppfive
 from ppfive.io.local import LocalPosixReader
 
-
 SOURCE_FILE = "/Volumes/Lawrence4TB/xjanpa.pa19910301"
-N_TRIALS = 8
+N_TRIALS = 1
 
 
 def metadata_probe(path: str, disable_os_cache: bool) -> tuple[float, list[tuple[str, tuple[int, ...], dict]]]:
@@ -22,7 +21,8 @@ def metadata_probe(path: str, disable_os_cache: bool) -> tuple[float, list[tuple
         rows = []
         for name in f:
             var = f[name]
-            rows.append((name, var.shape, dict(var.attrs)))
+            max = var[:].max() 
+            rows.append((name, var.shape, dict(var.attrs), max))
     return time.perf_counter() - t0, rows
 
 
