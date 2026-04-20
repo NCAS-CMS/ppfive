@@ -5,6 +5,7 @@ import statistics as st
 import time
 from pathlib import Path
 
+import dask
 import cf
 import ppfive
 
@@ -39,20 +40,22 @@ def _read_p5(path: str, dask_chunks, thread_count: int):
         return cf.read(f, dask_chunks=dask_chunks)
 
 
-def _time_field_arrays(fields, targets: set[str] | None):
+def _time_field_arrays(fields, targets: set[str] | None, dask_scheduler: str | None):
     timed = {}
     for field in fields:
         name = field.identity()
         if targets is not None and name not in targets:
             continue
 
-        t0 = time.perf_counter()
-        arr = field.array
-        t1 = time.perf_counter()
+        ctx = dask.config.set(scheduler=dask_scheduler) if dask_scheduler else _null_ctx()
+        with ctx:
+            t0 = time.perf_counter()
+            arr = field.array
+            t1 = time.perf_counter()
 
-        t2 = time.perf_counter()
-        _ = arr.max()
-        t3 = time.perf_counter()
+            t2 = time.perf_counter()
+            _ = arr.max()
+            t3 = time.perf_counter()
 
         timed[name] = {
             "array_sec": t1 - t0,
@@ -63,7 +66,12 @@ def _time_field_arrays(fields, targets: set[str] | None):
     return timed
 
 
-def _run_one_mode(mode: str, path: str, dask_chunks, thread_count: int, targets: set[str] | None):
+class _null_ctx:
+    def __enter__(self): return self
+    def __exit__(self, *_): pass
+
+
+def _run_one_mode(mode: str, path: str, dask_chunks, thread_count: int, targets: set[str] | None, dask_scheduler: str | None):
     if mode == "CF":
         fields = _read_cf(path, dask_chunks)
     elif mode == "P5":
@@ -71,7 +79,7 @@ def _run_one_mode(mode: str, path: str, dask_chunks, thread_count: int, targets:
     else:
         raise ValueError(f"Unsupported mode: {mode}")
 
-    return _time_field_arrays(fields, targets)
+    return _time_field_arrays(fields, targets, dask_scheduler)
 
 
 def _summary(values: list[float]) -> str:
@@ -102,6 +110,12 @@ def main() -> None:
         default="",
         help="Comma-separated field identities to benchmark; empty means all common fields",
     )
+    parser.add_argument(
+        "--dask-scheduler",
+        default=None,
+        choices=["synchronous", "threads", "processes"],
+        help="Force dask scheduler for .array calls (default: dask's own default)",
+    )
     args = parser.parse_args()
 
     if args.trials <= 0:
@@ -113,11 +127,13 @@ def main() -> None:
 
     dask_chunks = _parse_dask_chunks(args.dask_chunks)
     targets = {x.strip() for x in args.targets.split(",") if x.strip()} or None
+    dask_scheduler = args.dask_scheduler
 
     print("CONFIG")
     print(f"  path={Path(args.path)}")
     print(f"  trials={args.trials} warmup={args.warmup}")
     print(f"  dask_chunks={args.dask_chunks} ppfive_thread_count={args.thread_count}")
+    print(f"  dask_scheduler={dask_scheduler or 'default'}")
     print(f"  targets={'ALL_COMMON' if targets is None else sorted(targets)}")
 
     # Warmup runs (discarded), alternating order.
@@ -125,7 +141,7 @@ def main() -> None:
         order = ("CF", "P5") if i % 2 == 0 else ("P5", "CF")
         print(f"WARMUP {i + 1}/{args.warmup} order={order}")
         for mode in order:
-            _ = _run_one_mode(mode, args.path, dask_chunks, args.thread_count, targets)
+            _ = _run_one_mode(mode, args.path, dask_chunks, args.thread_count, targets, dask_scheduler)
             gc.collect()
 
     stats = {}
@@ -137,7 +153,7 @@ def main() -> None:
 
         trial_data = {}
         for mode in order:
-            trial_data[mode] = _run_one_mode(mode, args.path, dask_chunks, args.thread_count, targets)
+            trial_data[mode] = _run_one_mode(mode, args.path, dask_chunks, args.thread_count, targets, dask_scheduler)
             gc.collect()
 
         cf_data = trial_data["CF"]
