@@ -13,6 +13,7 @@ from .core import detect_file_type, scan_ff_headers, scan_pp_headers
 from .core.variables import build_variable_index
 from .io.base import ByteReader
 from .io.fileobj import FileObjReader
+from .io.fsspec_reader import FsspecReader
 from .io.local import LocalPosixReader
 from .variable import Variable
 
@@ -264,6 +265,42 @@ def _derive_cell_methods(attrs: Mapping[str, Any], dim_names: tuple[str, ...]) -
 class File(Mapping[str, Variable]):
     """A pyfive-style file handle exposing variables as a Mapping."""
 
+    @staticmethod
+    def _local_default_thread_count_from_variable_index(
+        variable_index: Mapping[str, Mapping[str, Any]],
+    ) -> int:
+        """Choose local POSIX default thread count from chunk topology.
+
+        Preference order for representative chunk-count sample:
+        1) WGDOS-packed variables
+        2) any packed variables
+        3) all variables
+        """
+
+        def _counts(predicate) -> list[int]:
+            counts: list[int] = []
+            for meta in variable_index.values():
+                attrs = meta.get("attrs", {})
+                if predicate(attrs):
+                    counts.append(len(meta.get("chunk_records", ())))
+            return counts
+
+        chunk_counts = _counts(lambda attrs: bool(attrs.get("is_wgdos_packed", False)))
+        if not chunk_counts:
+            chunk_counts = _counts(lambda attrs: bool(attrs.get("is_packed", False)))
+        if not chunk_counts:
+            chunk_counts = [len(meta.get("chunk_records", ())) for meta in variable_index.values()]
+
+        if not chunk_counts:
+            return 1
+
+        max_chunks = max(chunk_counts)
+        if max_chunks <= 2:
+            return 1
+        if max_chunks <= 8:
+            return 2
+        return 4
+
     def __init__(
         self,
         filename: str | ByteReader | Any,
@@ -322,6 +359,10 @@ class File(Mapping[str, Variable]):
                     f"No valid records found in {self.fmt} file {self.filename}. "
                     f"The file may be corrupted or empty."
                 )
+
+            # Default policy: remote readers use 4 threads.
+            if isinstance(self._reader, FsspecReader):
+                self._thread_count = 4
             
             variable_index = build_variable_index(
                 self._records,
@@ -333,6 +374,22 @@ class File(Mapping[str, Variable]):
                     "cat_range_allowed": self._cat_range_allowed,
                 },
             )
+
+            # Default policy: local POSIX readers choose 1/2/4 by chunk count.
+            if isinstance(self._reader, LocalPosixReader):
+                auto_threads = self._local_default_thread_count_from_variable_index(variable_index)
+                if auto_threads != self._thread_count:
+                    self._thread_count = auto_threads
+                    variable_index = build_variable_index(
+                        self._records,
+                        self._reader,
+                        self.word_size,
+                        self.byte_ordering,
+                        parallel_config={
+                            "thread_count": self._thread_count,
+                            "cat_range_allowed": self._cat_range_allowed,
+                        },
+                    )
         else:
             self.fmt = None
             self.byte_ordering = None

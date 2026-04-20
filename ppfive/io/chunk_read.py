@@ -70,8 +70,12 @@ class ChunkReadMixin:
     def _read_parallel_local_chunks(self, required, out: np.ndarray, thread_count: int) -> None:
         def _read_one(item):
             chunk_offset, chunk_selection, out_selection, rec, chunk_shape = item
-            raw = read_record_raw(self._variable.file._reader, rec, self._variable.file.word_size)
-            chunk_data = self._decode_chunk_buffer(raw, rec, chunk_shape)
+            chunk_data = read_record_array(
+                self._variable.file._reader,
+                rec,
+                self._variable.file.word_size,
+                self._variable.file.byte_ordering,
+            ).reshape(chunk_shape)
             return chunk_offset, chunk_selection, out_selection, chunk_data
 
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
