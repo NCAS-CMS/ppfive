@@ -6,8 +6,8 @@ import time
 import ppfive
 from pathlib import Path
 
-#EXAMPLE_FILE = "/Volumes/Lawrence4TB/xjanpa.pa19910301"
-EXAMPLE_FILE = str(Path.home()/"data/xjanpa.pa19910301")
+EXAMPLE_FILE = "/Volumes/Lawrence4TB/xjanpa.pa19910301"
+#EXAMPLE_FILE = str(Path.home()/"data/xjanpa.pa19910301")
 
 def timecf(path):
     t0 = time.perf_counter()
@@ -22,6 +22,10 @@ def timep5(path):
     return time.perf_counter() - t0, r
 
 def compare(path):
+    # Do an extra one to ensure that caching is not affecting the comparison. 
+    # it may well be in play, but it's fairer to have it in play for both.
+    cf_time, cf_result = timecf(path)
+    #ok, now we're doing it for real:
     cf_time, cf_result = timecf(path)
     p5_time, p5_result = timep5(path)   
     cfdict = {f.identity(): f for f in cf_result}
@@ -51,7 +55,7 @@ def compare(path):
         print(f"{r[0]:<26} CF: {r[1]:.2f}s, P5: {r[2]:.2f}s (WGD={val}, {r[4]})")
 
 if __name__ == "__main__":
-    N_TRIALS = 2
+    N_TRIALS = 8
     for i in range(N_TRIALS):
         compare(EXAMPLE_FILE)
         
