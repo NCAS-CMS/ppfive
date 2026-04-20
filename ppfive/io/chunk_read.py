@@ -75,9 +75,8 @@ class ChunkReadMixin:
             return chunk_offset, chunk_selection, out_selection, chunk_data
 
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
-            decoded_chunks = list(executor.map(_read_one, required))
-
-        self._store_and_assign(decoded_chunks, out)
+            for _chunk_offset, chunk_selection, out_selection, chunk_data in executor.map(_read_one, required):
+                out[out_selection] = chunk_data[chunk_selection]
 
     def _read_bulk_fsspec_chunks(self, required, out: np.ndarray, thread_count: int) -> None:
         reader = self._variable.file._reader
@@ -96,11 +95,11 @@ class ChunkReadMixin:
 
         if thread_count > 1:
             with ThreadPoolExecutor(max_workers=thread_count) as executor:
-                decoded_chunks = list(executor.map(_decode_one, items))
+                decoded_iter = executor.map(_decode_one, items)
         else:
-            decoded_chunks = list(map(_decode_one, items))
+            decoded_iter = map(_decode_one, items)
 
-        self._store_and_assign(decoded_chunks, out)
+        self._store_and_assign(decoded_iter, out)
 
     def _select_chunks(self, indexer, out: np.ndarray) -> None:
         file_obj = self._variable.file
