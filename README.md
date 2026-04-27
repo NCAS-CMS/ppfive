@@ -4,7 +4,7 @@ A PP and Fields file reader that mimics relevant parts of the `pyfive` high-leve
 with support for lazy metadata loading and parallel data loading when necessary. 
 
 This is NOT an alternative to pyfive, it is a package which makes pp and fields files
-look like and taste ("quack like") HDF5 files written by a NetCDF library.
+look like and taste ("quack like") chunked HDF5 files written by a NetCDF library.
 
 ## API Contract (ppfive vs pyfive)
 
