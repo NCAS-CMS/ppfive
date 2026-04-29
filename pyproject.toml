@@ -1,11 +1,16 @@
 [build-system]
-requires = ["setuptools>=69", "wheel", "numpy>=1.24"]
+requires = [
+  "setuptools>=80",
+  "setuptools_scm>=8",
+  "numpy>=1.24",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ppfive"
 version = "0.1.0"
 description = "PP/Fields reader with pyfive-style high-level API"
+license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -33,6 +38,7 @@ ppdump = "ppfive.ppdump:main"
 
 [tool.setuptools]
 include-package-data = true
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 include = ["ppfive*"]
