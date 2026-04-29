@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - try_cibuildwheels
 
 jobs:
   build-n-publish:
@@ -26,6 +27,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+      - uses: pypa/cibuildwheel@v3
       - name: Install pep517
         run: >-
           python -m
@@ -35,7 +37,7 @@ jobs:
       - name: Build a binary wheel and a source tarball
         run: >-
           python -m
-          pep517.build
+          cibuildwheel  # pep517.build
           --source
           --binary
           --out-dir dist/
