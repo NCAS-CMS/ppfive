@@ -4,7 +4,7 @@ channels:
   - nodefaults  # stay away from Anaconda like the plague
 
 dependencies:
-  - python >=3.10
+  - python >=3.11
   - numpy >=1.24
   - fsspec >=2024.3.0
   - pytest >=8

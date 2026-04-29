@@ -12,11 +12,12 @@ version = "0.1.0"
 description = "PP/Fields reader with pyfive-style high-level API"
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
 	{name = "David Hassell"},
 	{name = "Alan Iwi"},
 	{name = "Bryan Lawrence"},
+        {name = "Valeriu Predoi - package"},
 ]
 dependencies = [
 	"numpy>=1.24",
