@@ -37,7 +37,7 @@ jobs:
       - name: Build a binary wheel and a source tarball
         run: >-
           python -m
-          cibuildwheel  # pep517.build
+          pep517.build
           --source
           --binary
           --out-dir dist/
