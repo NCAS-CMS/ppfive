@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - remove_local_git_requirements
 
 jobs:
   build-n-publish:
