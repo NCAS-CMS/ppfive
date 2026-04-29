@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-      - uses: pypa/cibuildwheel@v2
+      - uses: pypa/cibuildwheel@v3.2.1
       - name: Install pep517
         run: >-
           python -m
