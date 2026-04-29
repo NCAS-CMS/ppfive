@@ -41,3 +41,5 @@ orig/
 
 # SO object
 ppfive/_wgdos.cpython-314-x86_64-linux-gnu.so
+ppfive/_wgdos.cpython-312-darwin.so
+ppfive/_wgdos.cpython*
