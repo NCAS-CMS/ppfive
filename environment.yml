@@ -1,11 +1,15 @@
 name: ppfive-dev
 channels:
   - conda-forge
+  - nodefaults  # stay away from Anaconda like the plague
+
 dependencies:
-  - python>=3.10
-  - numpy>=1.24
-  - fsspec>=2024.3.0
-  - pytest>=8
+  - python >=3.11
+  - numpy >=1.24
+  - fsspec >=2024.3.0
+  - pytest >=8
+  - pytest-xdist
+  - udunits2  # cf-python needs it
   - pip
   - pip:
       - cf-python @ git+https://github.com/davidhassell/cf-python.git@kerchunk-read

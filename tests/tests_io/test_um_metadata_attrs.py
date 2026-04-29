@@ -1,3 +1,5 @@
+import pytest
+
 from ppfive import File
 
 
@@ -15,6 +17,7 @@ def test_cf_like_um_attrs_for_release2_fixture():
     assert attrs["source"] == "UM vn405"
 
 
+@pytest.mark.skip(reason="File is too big for GitHub")
 def test_cf_like_um_attrs_for_release3_fixture():
     with File("tests/data/dk922a.pa1983aug") as f:
         v = f["m01s00i024"]

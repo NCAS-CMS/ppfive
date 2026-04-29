@@ -38,3 +38,6 @@ htmlcov/
 
 # Do not commit original source snapshot
 orig/
+
+# SO object
+ppfive/_wgdos.cpython-314-x86_64-linux-gnu.so
