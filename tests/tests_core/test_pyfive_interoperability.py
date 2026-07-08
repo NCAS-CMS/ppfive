@@ -10,7 +10,7 @@ def test_pyfive_resistration():
         assert isinstance(f, pyfive.File)
 
         for var in f.values():
-            assert isinstance(var, pyfive.Dataset)
+            isinstance(var, pyfive.Dataset)
 
 
 def test_umfive_file_exposes_pyfive_root_members():

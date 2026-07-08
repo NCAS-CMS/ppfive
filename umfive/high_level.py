@@ -2465,6 +2465,7 @@ class DataVariableMetadata:
                 ac = Variable(
                     name="region",
                     data=array,
+                    attrs={'standard_name': 'region'},
                     DIMENSION_LIST=((self._axis[axis],),),
                 )
                 aux_ncvar = self.add_to_variables(ac)
@@ -2923,7 +2924,7 @@ class DataVariableMetadata:
 # Let external callers treat File as pyfive-like File
 try:
     import pyfive
+
+    pyfive.File.register(File)
 except Exception:  # pragma: no cover
     pass
-else:
-    pyfive.File.register(File)

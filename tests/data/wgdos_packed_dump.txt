@@ -1,6 +1,6 @@
 <umfive.File: tests/data/wgdos_packed.pp, 1 data variable, 7 metadata variables>
     Attributes:
-        Conventions: 'CF-1.14'
+        Conventions: 'CF-1.13'
     Data variables:
         <umfive.DataVariable: UM_m01s30i201_vn1100, shape=(1, 1, 145, 192), dimensions=(time, air_pressure, latitude, longitude)>
             Attributes:
