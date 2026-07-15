@@ -1,7 +1,5 @@
 import csv
 import re
-
-from contextlib import contextmanager
 from importlib.resources import files
 from pathlib import PosixPath
 
@@ -100,6 +98,7 @@ def _parse_cf_extra(value):
 
     return out
 
+
 def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
     """Load a STASH to standard name conversion table from a file.
 
@@ -165,21 +164,22 @@ def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
     >>> load_stash_table('my_table3.txt', merge=True)
     >>> load_stash_table('my_table4.txt', merge=False)
 
-    """    
+    """
     if reset:
         table = None
         merge = False
         _stash_table.clear()
-        
+
     if table is None:
         # Use the default STASH table
         if _default_stash_table:
+            # Use the existing default tables
             read_table = False
             store_default = False
         else:
             read_table = True
             store_default = True
-            
+
         table_path = files(__package__).joinpath("data/STASH_to_CF.txt")
     else:
         # User supplied table
@@ -193,15 +193,15 @@ def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
             rows = list(
                 csv.reader(handle, delimiter=delimiter, skipinitialspace=True)
             )
-    
+
         for row in rows:
             if not row or row[0].startswith("#"):
                 continue
-    
+
             # Normalize to expected width.
             if len(row) < 9:
                 row = row + [""] * (9 - len(row))
-    
+
             key = (int(row[_MODEL]), int(row[_STASH]))
             name = row[_NAME]
             units = row[_UNITS] or None
@@ -210,7 +210,7 @@ def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
             standard_name = row[_STANDARD_NAME] or None
             cf_info = _parse_cf_extra(row[_CF_EXTRA])
             pp_extra = row[_PP_EXTRA].rstrip()
-    
+
             entry = (
                 name,
                 units,
@@ -220,7 +220,7 @@ def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
                 cf_info,
                 pp_extra,
             )
-    
+
             if key in stash2sn:
                 stash2sn[key] += (entry,)
             else:
@@ -228,7 +228,7 @@ def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
 
     if reset:
         stash2sn = _default_stash_table
-    
+
     if store_default:
         # Store the default STASH table
         _default_stash_table.update(stash2sn)
@@ -244,18 +244,23 @@ def stash_table(reset=False):
 
     .. seealso:: `load_stash_table`, `stash_record`
 
+    :Parameters:
+
+        reset: `bool`, optional
+            If True then clear all entries, re-load the default
+            table, and return it.
+
     :Returns:
 
         `dict`
             The currently loaded STASH table.
 
     """
-    
+
     if reset or not _default_stash_table:
         load_stash_table(reset=reset)
 
     return _stash_table.copy()
-
 
 
 def stash_records(submodel, stash_code):

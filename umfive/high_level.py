@@ -2465,7 +2465,7 @@ class DataVariableMetadata:
                 ac = Variable(
                     name="region",
                     data=array,
-                    attrs={'standard_name': 'region'},
+                    attrs={"standard_name": "region"},
                     DIMENSION_LIST=((self._axis[axis],),),
                 )
                 aux_ncvar = self.add_to_variables(ac)
