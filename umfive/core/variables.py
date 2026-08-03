@@ -47,7 +47,6 @@ from .data import (
     read_record_array,
 )
 from .interpret import get_type
-from .models import RecordInfo
 
 
 def _float_key(val):

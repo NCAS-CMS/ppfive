@@ -17,6 +17,7 @@ import umfive
     ],
 )
 def test_file(dataset, suffix):
+    """Test umfive.File with various input files."""
     # Build the file paths dynamically based on parameters
     input_file = f"tests/data/{dataset}{suffix}"
     dump_file = f"tests/data/{dataset}_dump.txt"
@@ -31,6 +32,7 @@ def test_file(dataset, suffix):
 
 
 def test_File_with_builtin_open_as_input():
+    """Test umfive.File with open file handle 'filename' argument."""
     with open("tests/data/test2.pp", "rb") as fh:
         f = umfive.File(fh)
         assert (
@@ -40,6 +42,7 @@ def test_File_with_builtin_open_as_input():
 
 
 def test_File_with_bytesio_as_input():
+    """Test umfive.File with BytesIO 'filename' argument."""
     path = Path("tests/data/test2.pp")
     raw = BytesIO(path.read_bytes())
     f = umfive.File(raw)
@@ -54,10 +57,12 @@ def test_File_with_bytesio_as_input():
     [[], {}, (), None, 0, 3.14, True],
 )
 def test_File_with_invalid_input(filename):
+    """Test umfive.File with bad 'filename' type."""
     with pytest.raises(ValueError):
         umfive.File(filename)
 
 
 def test_File_with_directory_input():
+    """Test umfive.File with 'filename' pointing to a directory."""
     with pytest.raises(IsADirectoryError):
         umfive.File("tests/data")
