@@ -1211,9 +1211,9 @@ class DataVariable(_Mixin):
 # Let external callers treat variable classes as pyfive-like Datasets
 try:
     import pyfive
-except Exception:  # pragma: no cover
-    pass
-else:
+
     pyfive.Dataset.register(DataVariable)
     pyfive.Dataset.register(DimensionScale)
     pyfive.Dataset.register(Variable)
+except Exception:  # pragma: no cover
+    pass

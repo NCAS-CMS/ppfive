@@ -1,6 +1,6 @@
 <umfive.File: tests/data/extra_data.pp, 1 data variable, 10 metadata variables>
     Attributes:
-        Conventions: 'CF-1.14'
+        Conventions: 'CF-1.13'
     Data variables:
         <umfive.DataVariable: UM_m01s03i236_vn405, shape=(1, 1, 100, 3), dimensions=(dimension1, height, time, site)>
             Attributes:
@@ -228,6 +228,7 @@
         <umfive.Variable: region, shape=(3,), dimensions=(site)>
             Attributes:
                 DIMENSION_LIST: (('site',),)
+                standard_name: 'region'
             Data str608:
                 ['Northern Hemisphere', 'Southern Hemisphere',
                  'Global']

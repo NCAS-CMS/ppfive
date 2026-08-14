@@ -99,7 +99,7 @@ def _parse_cf_extra(value):
     return out
 
 
-def load_stash_table(table=None, delimiter="!", merge=True):
+def load_stash_table(table=None, delimiter="!", merge=True, reset=False):
     """Load a STASH to standard name conversion table from a file.
 
     This used when reading PP and UM fields files.
@@ -132,12 +132,10 @@ def load_stash_table(table=None, delimiter="!", merge=True):
 
     :Parameters:
 
-        table: `str`, optional
-            Use the conversion table at this file location. By default
-            the table in ``data/STASH_to_CF.txt`` will be used.
-
-            Setting *table* to `None` will reset the table, removing
-            any modifications that have previously been made.
+        table: `str` or `None`, optional
+            Use the conversion table at this file location. If `None`
+            (the default) the table in ``data/STASH_to_CF.txt`` will be
+            used.
 
         delimiter: `str`, optional
             The delimiter of the table columns. By default, ``!`` is
@@ -150,8 +148,9 @@ def load_stash_table(table=None, delimiter="!", merge=True):
             into the existing table, overwriting any entries which
             already exist.
 
-            If *table* is `None` then *merge* is taken as False,
-            regardless of its given value.
+        reset: `bool`, optional
+            If True then clear all entries and re-load the default
+            table.
 
     :Returns:
 
@@ -166,60 +165,71 @@ def load_stash_table(table=None, delimiter="!", merge=True):
     >>> load_stash_table('my_table4.txt', merge=False)
 
     """
+    if reset:
+        table = None
+        merge = False
+        _stash_table.clear()
+
     if table is None:
         # Use the default STASH table
         if _default_stash_table:
-            # The default STASH table has already been loaded
-            return
+            # Use the existing default tables
+            read_table = False
+            store_default = False
+        else:
+            read_table = True
+            store_default = True
 
-        default = True
-        merge = False
         table_path = files(__package__).joinpath("data/STASH_to_CF.txt")
     else:
         # User supplied table
-        default = False
+        read_table = True
+        store_default = False
         table_path = PosixPath(table)
 
     stash2sn = {}
+    if read_table:
+        with table_path.open("r", encoding="utf-8") as handle:
+            rows = list(
+                csv.reader(handle, delimiter=delimiter, skipinitialspace=True)
+            )
 
-    with table_path.open("r", encoding="utf-8") as handle:
-        rows = list(
-            csv.reader(handle, delimiter=delimiter, skipinitialspace=True)
-        )
+        for row in rows:
+            if not row or row[0].startswith("#"):
+                continue
 
-    for row in rows:
-        if not row or row[0].startswith("#"):
-            continue
+            # Normalize to expected width.
+            if len(row) < 9:
+                row = row + [""] * (9 - len(row))
 
-        # Normalize to expected width.
-        if len(row) < 9:
-            row = row + [""] * (9 - len(row))
+            key = (int(row[_MODEL]), int(row[_STASH]))
+            name = row[_NAME]
+            units = row[_UNITS] or None
+            valid_from = _parse_version(row[_VALID_FROM])
+            valid_to = _parse_version(row[_VALID_TO])
+            standard_name = row[_STANDARD_NAME] or None
+            cf_info = _parse_cf_extra(row[_CF_EXTRA])
+            pp_extra = row[_PP_EXTRA].rstrip()
 
-        key = (int(row[_MODEL]), int(row[_STASH]))
-        name = row[_NAME]
-        units = row[_UNITS] or None
-        valid_from = _parse_version(row[_VALID_FROM])
-        valid_to = _parse_version(row[_VALID_TO])
-        standard_name = row[_STANDARD_NAME] or None
-        cf_info = _parse_cf_extra(row[_CF_EXTRA])
-        pp_extra = row[_PP_EXTRA].rstrip()
+            entry = (
+                name,
+                units,
+                valid_from,
+                valid_to,
+                standard_name,
+                cf_info,
+                pp_extra,
+            )
 
-        entry = (
-            name,
-            units,
-            valid_from,
-            valid_to,
-            standard_name,
-            cf_info,
-            pp_extra,
-        )
+            if key in stash2sn:
+                stash2sn[key] += (entry,)
+            else:
+                stash2sn[key] = (entry,)
 
-        if key in stash2sn:
-            stash2sn[key] += (entry,)
-        else:
-            stash2sn[key] = (entry,)
+    if reset:
+        stash2sn = _default_stash_table
 
-    if default:
+    if store_default:
         # Store the default STASH table
         _default_stash_table.update(stash2sn)
 
@@ -229,10 +239,16 @@ def load_stash_table(table=None, delimiter="!", merge=True):
     _stash_table.update(stash2sn)
 
 
-def stash_table():
+def stash_table(reset=False):
     """Return a copy of the current STASH table.
 
     .. seealso:: `load_stash_table`, `stash_record`
+
+    :Parameters:
+
+        reset: `bool`, optional
+            If True then clear all entries, re-load the default
+            table, and return it.
 
     :Returns:
 
@@ -240,8 +256,9 @@ def stash_table():
             The currently loaded STASH table.
 
     """
-    if not _stash_table:
-        load_stash_table()
+
+    if reset or not _default_stash_table:
+        load_stash_table(reset=reset)
 
     return _stash_table.copy()
 

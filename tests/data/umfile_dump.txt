@@ -1,6 +1,6 @@
 <umfive.File: tests/data/umfile.pp, 1 data variable, 7 metadata variables>
     Attributes:
-        Conventions: 'CF-1.14'
+        Conventions: 'CF-1.13'
     Data variables:
         <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>
             Attributes:
