@@ -201,9 +201,13 @@ class File(Mapping):
              and higher (or the value ``-1``) produce the same
              maximally verbose output.
 
-        print_lookup_headers: `bool`, optional
-            If True then, for each variable in the dataset, print the
-            consituent lookup headers, and any extra data.
+        print_lookup_headers: `None` or `str`, optional
+            If ``'first'`` then, for each variable in the dataset,
+            print the first of its consituent lookup headers with any
+            extra data. If ``'all'`` then, for each variable in the
+            dataset, print all of its consituent lookup headers with
+            any extra data. If `None` (the default) then no lookup
+            headers are printed.
 
         store_record_info: `None` or `dict`, optional
             If set to a dictionary, then that dictionary will be
@@ -228,7 +232,7 @@ class File(Mapping):
         height_at_top_of_model=None,
         local_os_cache=True,
         verbose=0,
-        print_lookup_headers=False,
+        print_lookup_headers=None,
         store_record_info=None,
         *,
         _data_variable_index=None,
@@ -306,6 +310,23 @@ class File(Mapping):
                 cat_range_allowed = True
 
             self.protocol = protocol
+
+        if print_lookup_headers is not None:
+            if not isinstance(print_lookup_headers, str):
+                raise ValueError(
+                    "print_lookup_headers must be None or 'first' or 'all'. "
+                    f"Got: {print_lookup_headers!r}"
+                )
+
+            if print_lookup_headers == "first":
+                index = slice(0, 1)
+            elif print_lookup_headers == "all":
+                index = slice(None)
+            else:
+                raise ValueError(
+                    "print_lookup_headers must be None or 'first' or 'all'. "
+                    f"Got: {print_lookup_headers!r}"
+                )
 
         if store_record_info is not None and not isinstance(
             store_record_info, dict
@@ -456,11 +477,12 @@ class File(Mapping):
                 # this data variable.
                 nhdr = len(data_variable.chunk_records)
                 s = "s" if nhdr > 1 else ""
-                title = f"{name}: {nhdr} lookup header{s}"
+                n = 1 if print_lookup_headers == "first" else nhdr
+                title = f"{name}: {n}/{nhdr} lookup header{s}"
                 title += f"\n{'-' * len(title)}"
 
                 lookups = "\n\n".join(
-                    [str(rec) for rec in data_variable.chunk_records]
+                    [str(rec) for rec in data_variable.chunk_records[index]]
                 )
 
                 print(f"{title}\n{lookups}\n")
