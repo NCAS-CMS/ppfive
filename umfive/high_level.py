@@ -171,13 +171,13 @@ class File(Mapping):
         height_at_top_of_model: `float` or `None`, optional
             The height in metres of the upper bound of the top model
             level. If `None` (the default) the height at top model is
-            taken from the top level's upper bound defined by BRSVD1
-            in the lookup headers. If the height can't be determined
-            from the header, or the given height is less than or equal
-            to 0, then a coordinate reference system will still be
-            created that contains the 'a' and 'b' formula term values,
-            but without an atmosphere hybrid height dimension
-            coordinate construct.
+            taken from the top level's upper bound defined by BULEV
+            (word 46) in the lookup headers. If the height can't be
+            determined from the header, or the given height is less
+            than or equal to 0, then a coordinate reference system
+            will still be created that contains the 'a' and 'b'
+            formula term values, but without an atmosphere hybrid
+            height dimension coordinate construct.
 
             .. note:: A current limitation is that if pseudolevels and
                       atmosphere hybrid height coordinates are defined

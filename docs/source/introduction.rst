@@ -87,27 +87,30 @@ dataset definitions:
 - A subclass of `umfive.ByteReader` (such as `umfive.LocalPosixReader`
   or `umfive.FileObjReader`).
 
-UM Attributes
--------------
+Attributes
+----------
 
 The following attributes, derived from the lookup headers, are added
 to data variables (i.e. added to `umfive.DataVariable` instances):
 
-===================  ================================================
+===================  =========================================================
 Attribute            Description
-===================  ================================================
-``lbcode``           The value of LBCODE (grid code)
-``lbproc``           The value of LBPROC (pocessing code)
-``lbtim``            The value of LBTIM (time indicator)
-``lbvc``             The value of LBVC (vertical co-ordinate type)
-``runid``            The runid decoded from LBEXP (experiment number)
-``source``           The source decoded from LBSRCE
-``stash_code``       The value of LBUSER(4) (stash code)
-``submodel``         The value of LBUSER(7) (model code)
+===================  =========================================================
+``lbcode``           The value of LBCODE (word 16, grid code)
+``lbproc``           The value of LBPROC (word 25, pocessing code)
+``lbtim``            The value of LBTIM (word 13, time indicator)
+``lbvc``             The value of LBVC (word 26, vertical co-ordinate type)
+``runid``            The runid decoded from LBEXP (word 28, experiment number)
+``source``           The source decoded from LBSRCE (word 38)
+``stash_code``       The value of LBUSER(4) (word 42, stash code)
+``submodel``         The value of LBUSER(7) (word 45, model code)
 ``um_identity``      A definitive identifier for the field
 ``um_stash_source``  The stash code and source
 ``um_version``       The UM version
-===================  ================================================
+===================  =========================================================
+
+A selection of :ref:`CF-attributes` are also set on the data and
+metadata variables.
 
 CF attributes
 -------------

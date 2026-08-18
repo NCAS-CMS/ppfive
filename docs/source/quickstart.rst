@@ -62,10 +62,10 @@ variables and metadata variables there are.
 
 .. rubric:: Display the `str` description of the dataset
 
-In addition to the `repr` output, this shows some details about TODO each
-of the components in the root group. The variable descriptions
-indicate which dimensions are spanned by their data arrays (the
-`/time` variable is scalar and so has no dimensions).
+In addition to the `repr` output, this shows some details about each
+data and metadata variable. The `umfive.DataVariable` and
+`umfive.Variable` variable descriptions indicate which dimensions are
+spanned by their data arrays.
 
 .. code-block:: python
 		
@@ -83,34 +83,40 @@ indicate which dimensions are spanned by their data arrays (the
        grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
        grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
        rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
-		
-.. rubric:: Access the dataset attributes
-	     
-See :ref:`Dataset-attributes`.
-
-.. code-block:: python
-		
-   >>> nc.attrs
-   {'Conventions': 'CF-1.13',
-    'global_attr_1': np.float64(3.14),
-    'global_attr_2': 'foo'}
-          
+	
 .. rubric:: Access a variable, its attributes and its data array
 
-See :ref:`Dataset-indexing`, :ref:`Variable-attributes`, and
-:ref:`Variable-data-and-indexing`.
-	     
+See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
+
 .. code-block:: python
 		
-   >>> var = nc['/forecast/lon']
-   >>> print(var)
-   lon: <xnetcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
+   >>> var = u['UM_m01s15i201_vn405']
    >>> var.attrs
-   {'bounds': '/forecast/lon_bnds',
-    'standard_name': 'longitude',
-    'units': 'degrees_east'}
+   {'DIMENSION_LIST': (('time',),
+     ('air_pressure',),
+     ('grid_latitude',),
+     ('grid_longitude',)),
+    '_FillValue': np.float32(-1.0737418e+09),
+    'cell_methods': 'time: mean',
+    'coordinates': 'time air_pressure grid_latitude grid_longitude',
+    'grid_mapping': 'rotated_latitude_longitude',
+    'lbcode': '101',
+    'lbproc': '128',
+    'lbtim': '121',
+    'lbvc': '8',
+    'long_name': 'U COMPNT OF WIND ON PRESSURE LEVELS',
+    'missing_value': np.float32(-1.0737418e+09),
+    'runid': 'aaacf',
+    'source': 'UM',
+    'standard_name': 'eastward_wind',
+    'stash_code': '15201',
+    'submodel': '1',
+    'um_identity': 'UM_m01s15i201_vn405',
+    'um_stash_source': 'm01s15i201',
+    'um_version': '4.5',
+    'units': 'm s-1'}
    >>> var[...]
-   array([ 22.5,  67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5])
+   arrayTODO([ 22.5,  67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5])
 
 .. rubric:: Display a variable's attributes and data array using the
             variable's `~xnetcdf.Variable.dump` method

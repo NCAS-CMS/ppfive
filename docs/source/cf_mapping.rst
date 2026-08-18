@@ -3,6 +3,8 @@
 CF mappings
 ===========
 
+.. _CF-attributes:
+
 CF attributes
 -------------
 
@@ -24,7 +26,7 @@ CF attribute       CF variable/global usage
 ``Conventions``    Global
 ``coordinates``    Data
 ``cell_methods``   Data
-``formula_terms``  Coordinate
+``formula_terms``  Coordinate (see :ref:`Orography`)
 ``grid_mapping``   Data
 ``long_name``      Data, Coordinate, Auxiliary coordinate, Domain ancillary
 ``missing_value``  Data
@@ -35,6 +37,8 @@ CF attribute       CF variable/global usage
 ``units``          Data, Coordinate, Auxiliary coordinate, Domain ancillary
 =================  ========================================================
 
+.. _Orography:
+   
 Orography
 ---------
 
