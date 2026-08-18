@@ -82,9 +82,9 @@ class File(Mapping):
     **CF mappings**
 
     The contents of the dataset are mapped to CF dimensions and
-    coordinate variables (both as `DimensionScale` objects); auxiliary
-    coordinate variables and domain ancillary variables (both as
-    `Variable` objects); and data variables (as `DataVariable`
+    coordinate variables (as `DimensionScale` objects); auxiliary
+    coordinate, domain ancillary, bounds and grid mapping variables
+    (as `Variable` objects); and data variables (as `DataVariable`
     objects).
 
     The following CF attributes are derived from the lookup headers
@@ -95,6 +95,7 @@ class File(Mapping):
     CF attribute       CF variable/global usage
     =================  =======================================
     ``_FillValue``     Data
+    ``add_offset``     Data
     ``axis``           Coordinate, Auxiliary coordinate
     ``bounds``         Coordinate, Domain ancillary
     ``calendar``       Coordinate
@@ -108,6 +109,7 @@ class File(Mapping):
                        Domain ancillary
     ``missing_value``  Data
     ``positive``       Coordinate, Auxiliary coordinate
+    ``scale_factor``   Data
     ``source``         Data
     ``standard_name``  Data, Coordinate, Auxiliary coordinate,
                        Domain ancillary
@@ -117,13 +119,13 @@ class File(Mapping):
 
     **Performance**
 
-    The read is lazy in that only the metadata (i.e. the lookup
-    headers and any extra data) are accessed during the initial
-    read. A data array in the file is then accessed on demand, and
-    then only for the part of the data array requested by the
-    indexing. Data reads are parallelised over the 2-d slices stored
-    for each lookup header (see `get_parallelism` and
-    `set_parallelism` methods).
+    The read of the dataset is lazy in that only the metadata
+    (i.e. the lookup headers and any extra data) are accessed during
+    the initial read. A data array in the dataset is then accessed on
+    demand, and then only for the part of the data array requested by
+    the indexing. Data reads are parallelised over the 2-d slices
+    stored for each lookup header (see `set_parallelism` and
+    `get_parallelism`).
 
     **Interoperability**
 
@@ -522,8 +524,12 @@ class File(Mapping):
         pd = "" if n_data == 1 else "s"
         pm = "" if n_metadata == 1 else "s"
 
+        dataset_name = self.filename
+        if dataset_name != "":
+            dataset_name = f"{dataset_name}: "
+
         return (
-            f"<{__package__}.{self.__class__.__name__}: {self.filename}, "
+            f"{dataset_name}<{__package__}.{self.__class__.__name__}: "
             f"{n_data} data variable{pd}, "
             f"{n_metadata} metadata variable{pm}>"
         )
@@ -699,7 +705,7 @@ class File(Mapping):
     def get_parallelism(self):
         """Get the data variable chunk read parallelism configurations.
 
-        .. seealso:: `set_parallelism`
+        .. seealso:: `set_parallelism`, `DataVariable.get_parallelism`
 
         :Returns:
 
@@ -741,7 +747,7 @@ class File(Mapping):
     def set_parallelism(self, max_thread_count=0, cat_range_allowed=True):
         """Configure data variable chunk read parallelism.
 
-        .. seealso:: `get_parallelism`
+        .. seealso:: `get_parallelism`, `DataVariable.set_parallelism`
 
         :Parameters:
 

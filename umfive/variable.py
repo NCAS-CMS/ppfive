@@ -1112,7 +1112,7 @@ class DataVariable(_Mixin):
     def get_parallelism(self):
         """Configure data chunk read parallelism configuration.
 
-        .. seealso:: `set_parallelism`
+        .. seealso:: `set_parallelism`, `File.get_parallelism`
 
         :Returns:
 
@@ -1171,7 +1171,7 @@ class DataVariable(_Mixin):
     def set_parallelism(self, max_thread_count=0, cat_range_allowed=True):
         """Configure data chunk read parallelism.
 
-        .. seealso:: `get_parallelism`
+        .. seealso:: `get_parallelism`, `File.set_parallelism`
 
         :Parameters:
 
