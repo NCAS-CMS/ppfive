@@ -202,19 +202,20 @@ class File(Mapping):
              maximally verbose output.
 
         print_lookup_headers: `None` or `str`, optional
-            If ``'first'`` then, for each variable in the dataset,
-            print the first of its consituent lookup headers with any
-            extra data. If ``'all'`` then, for each variable in the
-            dataset, print all of its consituent lookup headers with
-            any extra data. If `None` (the default) then no lookup
-            headers are printed.
+            If ``'first'`` then the first of the consituent lookup
+            headers (with any extra data) is printed for each variable
+            in the dataset. If ``'all'`` then all of the consituent
+            lookup headers are printed for each variable in the
+            dataset. In both cases, any extra data is also displayed.
+            If `None` (the default) then no lookup headers are
+            printed.
 
         store_record_info: `None` or `dict`, optional
             If set to a dictionary, then that dictionary will be
-            populated in-place, for each variable in the dataset, with
-            the `RecordInfo` objects that provide the consituent
-            lookup headers and associated information. If `None` (the
-            default) then does nothing.
+            populated in-place with the `RecordInfo` objects that
+            provide the consituent lookup headers (and associated
+            information) for each variable in the datase. If `None`
+            (the default) then does nothing.
 
         _data_variable_index: `list` or `None`, optional
             The dictionary representations of the data variables. By
@@ -312,22 +313,21 @@ class File(Mapping):
             self.protocol = protocol
 
         if print_lookup_headers is not None:
+            ok = True
             if not isinstance(print_lookup_headers, str):
-                raise ValueError(
-                    "print_lookup_headers must be None or 'first' or 'all'. "
-                    f"Got: {print_lookup_headers!r}"
-                )
-
-            if print_lookup_headers == "first":
+                ok = False
+            elif print_lookup_headers == "first":
                 index = slice(0, 1)
             elif print_lookup_headers == "all":
                 index = slice(None)
             else:
+                ok = False
+
+            if not ok:
                 raise ValueError(
-                    "print_lookup_headers must be None or 'first' or 'all'. "
+                    "print_lookup_headers must be 'first', 'all', or None. "
                     f"Got: {print_lookup_headers!r}"
                 )
-
         if store_record_info is not None and not isinstance(
             store_record_info, dict
         ):
@@ -473,8 +473,7 @@ class File(Mapping):
             data_variables.append(name)
 
             if print_lookup_headers:
-                # Print the lookup headers, and any extra data, for
-                # this data variable.
+                # Print lookup headers for this data variable
                 nhdr = len(data_variable.chunk_records)
                 s = "s" if nhdr > 1 else ""
                 n = 1 if print_lookup_headers == "first" else nhdr
