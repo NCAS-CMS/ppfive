@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,23 @@ def test_local_reader_reopens_after_close(tmp_path: Path):
 
     # Should transparently reopen and still serve absolute reads.
     assert reader.read_at(2, 2) == b"cd"
+    reader.close()
+
+
+def test_local_reader_reopens_after_stale_fd(tmp_path: Path):
+    p = tmp_path / "stale.bin"
+    p.write_bytes(b"abcdefgh")
+
+    reader = LocalPosixReader(p)
+    assert reader.read_at(0, 2) == b"ab"
+
+    # Simulate an externally invalidated descriptor while the reader still
+    # holds a non-None fd value.
+    stale_fd = reader._fd
+    os.close(stale_fd)
+
+    # Should recover from EBADF by reopening transparently and retrying.
+    assert reader.read_at(2, 3) == b"cde"
     reader.close()
 
 
