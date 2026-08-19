@@ -61,5 +61,5 @@ def test_LocalPosixReader_as_input_to_File(path):
         f = File(reader)
         assert (
             repr(f)
-            == "<umfive.File: tests/data/test2.pp, 1 data variable, 9 metadata variables>"
+            == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
         )

@@ -55,5 +55,5 @@ jobs:
           pip list
       - name: Test with pytest
         run: pytest -n 2
-      - name: Verify ppdump command
-        run: ppdump --help
+      - name: Verify umdump command
+        run: umdump

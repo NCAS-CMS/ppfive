@@ -1,0 +1,4 @@
+To generate the dump outputs:
+
+$ cd ../..
+$ python generate_dump_outputs.py

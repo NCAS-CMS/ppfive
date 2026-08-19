@@ -5,7 +5,7 @@ import umfive
 
 def test_DataVariable_attributes():
     f = umfive.File("tests/data/test2.pp")
-    name = f.data_variables[0]
+    name = tuple(f.data_variables)[0]
     v = f[name]
     assert v.name == name
     assert v.attrs == {
@@ -48,7 +48,7 @@ def test_DataVariable_attributes():
 
 def test_DataVariableID_attributes():
     f = umfive.File("tests/data/wgdos_packed.pp")
-    name = f.data_variables[0]
+    name = tuple(f.data_variables)[0]
     v = f[name]
     assert v.id.chunks == (1, 1, 145, 192)
     assert v.id.dtype == "float32"
@@ -66,7 +66,8 @@ def test_DataVariableID_attributes():
 
 def test_DataVariable__getitem__():
     f = umfive.File("tests/data/test2.pp")
-    v = f[f.data_variables[0]]
+    name = tuple(f.data_variables)[0]
+    v = f[name]
 
     assert np.allclose(
         v[:, :, 0, 0],
