@@ -641,7 +641,7 @@ class File(Mapping):
                     data=data,
                     _level=_level + 2,
                 )
-                for name, var in sorted(self.data_variables.items())
+                for name, var in self.data_variables.items()
             )
 
         # Metadata variables
