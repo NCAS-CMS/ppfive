@@ -78,14 +78,16 @@ class RecordInfo:
     def __str__(self):
         import textwrap
 
-        x = [
-            f"{name}::{value}"
-            for name, value in zip(
-                _header_names, self.int_hdr.tolist() + self.real_hdr.tolist()
-            )
-        ]
-        x = textwrap.fill(" ".join(x), width=79)
+        int_hdr = self.int_hdr
+        real_hdr = self.real_hdr
 
+        i = [f"{_header_names[n]}::{int_hdr[n]}" for n in range(45)]
+        i = " ".join(i)
+
+        r = [f"{_header_names[n]}::{real_hdr[n - 45]}" for n in range(45, 64)]
+        r = " ".join(r)
+
+        x = textwrap.fill(" ".join((i, r)), width=79)
         out = [x.replace("::", ": ")]
 
         if self.extra_data:

@@ -93,4 +93,6 @@ def test_packed_record_prefers_lblrec_when_disk_length_is_padded(tmp_path):
     finally:
         reader.close()
 
-    assert np.allclose(arr, np.array([10.0, 20.0, 30.0, 40.0], dtype="float32"))
+    assert np.allclose(
+        arr, np.array([10.0, 20.0, 30.0, 40.0], dtype="float32")
+    )
