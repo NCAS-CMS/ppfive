@@ -313,24 +313,23 @@ class File(Mapping):
             self.protocol = protocol
 
         if display_lookup_headers is not None:
+            ok = True
             if not isinstance(display_lookup_headers, str):
+                ok = False
+            elif display_lookup_headers == "first":
+                index = slice(0, 1)
+            elif display_lookup_headers == "all":
+                index = slice(None)
+            else:
+                ok = False
+
+            if not ok:
                 raise ValueError(
-                    "print_lookup_headers must be None or 'first' or 'all'. "
+                    "display_lookup_headers must be 'first', 'all', or None. "
                     f"Got: {display_lookup_headers!r}"
                 )
 
-            if print_lookup_headers == "first":
-                index = slice(0, 1)
-            elif print_lookup_headers == "all":
-                index = slice(None)
-            else:
-                ok  = False
-                raise ValueError(
-                    "print_lookup_headers must be None or 'first' or 'all'. "
-                    f"Got: {print_lookup_headers!r}"
-                )
-
-        if record_info is not None and not isinstance( record_info,dict ):
+        if record_info is not None and not isinstance(record_info, dict):
             raise ValueError(
                 "record_info must be None or a dictionary. "
                 f"Got: {record_info!r}"
@@ -472,12 +471,11 @@ class File(Mapping):
             )
             data_variables.append(name)
 
-            if print_lookup_headers:
-                # Print the lookup headers, and any extra data, for
-                # this data variable.
+            if display_lookup_headers:
+                # Print lookup headers for this data variable
                 nhdr = len(data_variable.chunk_records)
                 s = "s" if nhdr > 1 else ""
-                n = f"1/" if print_lookup_headers == "first" else ""
+                n = "1/" if display_lookup_headers == "first" else ""
                 title = f"{name}: {n}{nhdr} lookup header{s}"
                 title += f"\n{'-' * len(title)}"
 
