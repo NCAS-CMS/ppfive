@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..constants import INDEX_BMDI, INDEX_LBPACK
+from ..constants import INDEX_BMDI, INDEX_LBLREC, INDEX_LBPACK
 from ..wgdos import unpack_wgdos
 from .header import endian_prefix
 from .interpret import get_extra_data_length, get_num_data_words, get_type
@@ -145,7 +145,18 @@ def get_record_packed_nbytes(rec):
 
     """
     extra_bytes = get_extra_data_length(rec.int_hdr, rec.word_size)
-    return rec.disk_length - extra_bytes
+    packed_bytes = rec.disk_length - extra_bytes
+
+    # For packed fields, LBNREC can include alignment padding while
+    # LBLREC reflects the actual packed payload length.
+    if int(rec.int_hdr[INDEX_LBPACK]) != 0:
+        lblrec_bytes = (int(rec.int_hdr[INDEX_LBLREC]) * rec.word_size) - (
+            extra_bytes
+        )
+        if lblrec_bytes > 0:
+            packed_bytes = min(packed_bytes, lblrec_bytes)
+
+    return max(0, packed_bytes)
 
 
 def read_record_raw(reader, rec):
