@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -26,6 +27,23 @@ def test_local_reader_reopens_after_close(tmp_path: Path):
     reader.close()
 
 
+def test_local_reader_reopens_after_stale_fd(tmp_path: Path):
+    p = tmp_path / "stale.bin"
+    p.write_bytes(b"abcdefgh")
+
+    reader = LocalPosixReader(p)
+    assert reader.read_at(0, 2) == b"ab"
+
+    # Simulate an externally invalidated descriptor while the reader still
+    # holds a non-None fd value.
+    stale_fd = reader._fd
+    os.close(stale_fd)
+
+    # Should recover from EBADF by reopening transparently and retrying.
+    assert reader.read_at(2, 3) == b"cde"
+    reader.close()
+
+
 def test_LocalPosixReader_fs_protocol():
     with LocalPosixReader("tests/data/test2.pp") as f:
         assert f.fs.protocol == "file"
@@ -43,5 +61,5 @@ def test_LocalPosixReader_as_input_to_File(path):
         f = File(reader)
         assert (
             repr(f)
-            == "<umfive.File: tests/data/test2.pp, 1 data variable, 9 metadata variables>"
+            == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
         )

@@ -358,7 +358,7 @@ class File(Mapping):
         all_variables = {}
 
         # Initialise the list of data variable names
-        data_variables = []
+        data_variable_names = []
 
         # Create the cache of metadata `Variable` and `DimensionScale`
         # instance names for the entire dataset. The dictionary keys
@@ -430,7 +430,7 @@ class File(Mapping):
                 chunk_records=tuple(meta.get("chunk_records", ())),
                 DIMENSION_LIST=DIMENSION_LIST,
             )
-            data_variables.append(name)
+            data_variable_names.append(name)
 
         # Try to add an "orog" formula term to vertical
         # coordinates. We have to do this after all of the variables
@@ -455,8 +455,8 @@ class File(Mapping):
                     all_variables[z], f"orog: {orog_name}"
                 )
 
-        self.data_variables = data_variables
-        self.variables = all_variables
+        self._data_variable_names = data_variable_names
+        self._all_variables = all_variables
 
         # Verbosity
         if verbose == 1:
@@ -509,16 +509,11 @@ class File(Mapping):
         return iter(self.variables)
 
     def __len__(self):
-        """The number of variables.
-
-        Includes data variables, dimension scale, and metadata
-        variables.
-
-        """
+        """The number of data and metadata variables."""
         return len(self.variables)
 
     def __repr__(self):
-        n_data = len(self.data_variables)
+        n_data = len(self._data_variable_names)
         n_metadata = len(self.variables) - n_data
 
         pd = "" if n_data == 1 else "s"
@@ -529,27 +524,76 @@ class File(Mapping):
             dataset_name = f"{dataset_name}: "
 
         return (
-            f"{dataset_name}<{__package__}.{self.__class__.__name__}: "
+            f"{self.filename}: "
+            f"<{__package__}.{self.__class__.__name__}: "
             f"{n_data} data variable{pd}, "
             f"{n_metadata} metadata variable{pm}>"
         )
 
     def __str__(self):
-        data_variables = self.data_variables
         out = [repr(self)]
         out.append("Data variables:")
         out.extend(
-            f"    {name}: {var!r}"
-            for name, var in self.variables.items()
-            if name in data_variables
+            f"    {name}: {var!r}" for name, var in self.data_variables.items()
         )
         out.append("Metadata variables:")
         out.extend(
             f"    {name}: {var!r}"
-            for name, var in self.variables.items()
-            if name not in data_variables
+            for name, var in self.metadata_variables.items()
         )
         return "\n".join(out)
+
+    @property
+    def data_variables(self):
+        """The data variables.
+
+        :Returns:
+
+            `dict`
+                The data variables, keyed by their names.
+
+        """
+        out = getattr(self, "_data_variables", None)
+        if out is None:
+            variables = self.variables
+            out = {name: variables[name] for name in self._data_variable_names}
+            self._data_variables = out
+
+        return out
+
+    @property
+    def metadata_variables(self):
+        """The metadata variables.
+
+        :Returns:
+
+            `dict`
+                The metadata variables, keyed by their names.
+
+        """
+        out = getattr(self, "_metadata_variables", None)
+        if out is None:
+            data_variable_names = self._data_variable_names
+            out = {
+                name: variable
+                for name, variable in self.variables.items()
+                if name not in data_variable_names
+            }
+            self._metadata_variables = out
+
+        return out
+
+    @property
+    def variables(self):
+        """All (data and metadata) variables.
+
+        :Returns:
+
+            `dict`
+                The variables, keyed by their names.
+
+        """
+        return self._all_variables
 
     def dump(self, display=True, data=False, metadata=False, _level=0):
         """A full description of the dataset.
@@ -603,12 +647,11 @@ class File(Mapping):
                     data=data,
                     _level=_level + 2,
                 )
-                for name, var in self.variables.items()
-                if name in self.data_variables
+                for name, var in sorted(self.data_variables.items())
             )
 
         # Metadata variables
-        if len(self.variables) > len(self.data_variables):
+        if self.metadata_variables:
             lines.append(f"{i1}Metadata variables:")
             lines.extend(
                 var.dump(
@@ -616,8 +659,7 @@ class File(Mapping):
                     data=data or metadata,
                     _level=_level + 2,
                 )
-                for name, var in self.items()
-                if name not in self.data_variables
+                for var in self.metadata_variables.values()
             )
 
         out = "\n".join(lines)
@@ -644,14 +686,14 @@ class File(Mapping):
 
         # PP files have consolidated_metadata is there is only
         # one lookup header with no extra data
-        data_variables = self.data_variables
-        if len(data_variables) > 1:
+        data_variable_names = self._data_variable_names
+        if len(data_variable_names) > 1:
             return False
 
-        if not len(data_variables):
+        if not len(data_variable_names):
             return True
 
-        var = self[data_variables[0]]
+        var = self.variables[data_variable_names[0]]
         if len(var.chunk_records) > 1:
             return False
 
@@ -666,8 +708,8 @@ class File(Mapping):
             `bool`
 
         """
-        for name in self.data_variables:
-            if self[name].has_extra_data:
+        for var in self.data_variables.values():
+            if var.has_extra_data:
                 return True
 
         return False
@@ -716,7 +758,8 @@ class File(Mapping):
 
         """
         return {
-            name: self[name].get_parallelism() for name in self.data_variables
+            name: var.get_parallelism()
+            for name, var in self.data_variables.items()
         }
 
     def get_lazy_view(self, name):
@@ -773,8 +816,8 @@ class File(Mapping):
 
         """
         # Set parallelism on data variables
-        for name in self.data_variables:
-            self[name].set_parallelism(max_thread_count, cat_range_allowed)
+        for var in self.data_variables.values():
+            var.set_parallelism(max_thread_count, cat_range_allowed)
 
 
 class DataVariableMetadata:

@@ -39,7 +39,7 @@ def test_file_accepts_local_reader_as_first_argument(path):
         f = File(reader)
         assert (
             repr(f)
-            == f"<umfive.File: {file_like.name}, 1 data variable, 9 metadata variables>"
+            == f"{file_like.name}: <umfive.File: 1 data variable, 9 metadata variables>"
         )
 
 

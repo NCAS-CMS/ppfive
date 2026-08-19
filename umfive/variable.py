@@ -505,7 +505,7 @@ class _Mixin:
         i1 = indent * (_level + 1)
         i2 = indent * (_level + 2)
 
-        lines = [f"{i0}{self!r}"]
+        lines = [f"{i0}{self.name}: {self!r}"]
 
         printoptions = _printoptions
         if data and "linewidth" not in printoptions:

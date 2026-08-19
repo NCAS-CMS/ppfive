@@ -1,3 +1,4 @@
+import errno
 import os
 import platform
 import shutil
@@ -126,4 +127,13 @@ class LocalPosixReader(ByteReader):
             self._fd = os.open(self.path, os.O_RDONLY)
             self._set_cache_policy()
 
-        return os.pread(self._fd, nbytes, offset)
+        try:
+            return os.pread(self._fd, nbytes, offset)
+        except OSError as e:
+            # If the descriptor has gone stale, reopen once and retry.
+            if e.errno != errno.EBADF:
+                raise
+
+            self._fd = os.open(self.path, os.O_RDONLY)
+            self._set_cache_policy()
+            return os.pread(self._fd, nbytes, offset)

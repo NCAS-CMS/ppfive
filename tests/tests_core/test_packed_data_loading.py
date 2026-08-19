@@ -77,3 +77,22 @@ def test_run_length_packed_record_reads(tmp_path):
         reader.close()
 
     assert np.allclose(arr, np.array([1.0, mdi, mdi, 5.0], dtype="float32"))
+
+
+def test_packed_record_prefers_lblrec_when_disk_length_is_padded(tmp_path):
+    int_hdr, real_hdr = _headers(pack=2, lblrec=4)
+    raw = np.array([10.0, 20.0, 30.0, 40.0], dtype="<f4").tobytes()
+    reader, rec = _record(raw, int_hdr, real_hdr, tmp_path, "pack2_tail.bin")
+
+    # Simulate an FF lookup where disk_length includes trailing alignment
+    # bytes but the physical final record is unpadded at EOF.
+    rec.disk_length = len(raw) + 8
+
+    try:
+        arr = read_record_array(reader, rec)
+    finally:
+        reader.close()
+
+    assert np.allclose(
+        arr, np.array([10.0, 20.0, 30.0, 40.0], dtype="float32")
+    )

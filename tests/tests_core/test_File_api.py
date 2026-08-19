@@ -216,7 +216,7 @@ def test_File__repr__():
     f = umfive.File("tests/data/test2.pp")
     assert (
         repr(f)
-        == "<umfive.File: tests/data/test2.pp, 1 data variable, 9 metadata variables>"
+        == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
     )
 
 
@@ -224,7 +224,7 @@ def test_File__str__():
     f = umfive.File("tests/data/test2.pp")
     assert (
         str(f)
-        == """<umfive.File: tests/data/test2.pp, 1 data variable, 9 metadata variables>
+        == """tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
 Data variables:
     UM_m01s15i201_vn405: <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
 Metadata variables:
@@ -275,7 +275,7 @@ def test_File_close():
 
 def test_File_get_lazy_view():
     f = umfive.File("tests/data/wgdos_packed.pp")
-    name = f.data_variables[0]
+    name = tuple(f.data_variables)[0]
     assert f.get_lazy_view(name) is f[name]
 
 
@@ -298,8 +298,8 @@ def test_File__init__attribues():
 
 def test_File__getitem__():
     f = umfive.File("tests/data/test2.pp")
-    name = f.data_variables[0]
-    var = f.variables[name]
+    name = tuple(f.data_variables)[0]
+    var = f[name]
     assert f[name] is var
     assert f[f".{name}"] is var
     assert f[f"./{name}"] is var
@@ -309,3 +309,35 @@ def test_File__getitem__():
     for n in ("____bad_name", f"{name}//", f"{name}/other", f"{name}/other/"):
         with pytest.raises(KeyError):
             f[n]
+
+
+def test_File__len__():
+    f = umfive.File("tests/data/test2.pp")
+    assert len(f) == len(f.variables)
+
+
+def test_File_data_variables():
+    f = umfive.File("tests/data/test2.pp")
+    assert isinstance(f.data_variables, dict)
+    assert len(f.data_variables) == len(f._data_variable_names)
+    for name, var in f.data_variables.items():
+        assert var is f[name]
+
+
+def test_File_metadata_variables():
+    f = umfive.File("tests/data/test2.pp")
+    assert isinstance(f.metadata_variables, dict)
+    assert len(f.metadata_variables) == len(f) - len(f.data_variables)
+    for name, var in f.metadata_variables.items():
+        assert var is f[name]
+
+
+def test_File_variables():
+    f = umfive.File("tests/data/test2.pp")
+    assert isinstance(f.variables, dict)
+    assert len(f.variables) == len(f.data_variables) + len(
+        f.metadata_variables
+    )
+    assert set(f.variables) == set(f.data_variables | f.metadata_variables)
+    for name, var in (f.data_variables | f.metadata_variables).items():
+        assert var is f.variables[name]
