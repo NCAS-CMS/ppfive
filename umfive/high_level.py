@@ -201,20 +201,21 @@ class File(Mapping):
              and higher (or the value ``-1``) produce the same
              maximally verbose output.
 
-        print_lookup_headers: `None` or `str`, optional
+        display_lookup_headers: `None` or `str`, optional
             If ``'first'`` then, for each variable in the dataset,
-            print the first of its consituent lookup headers with any
+            print the first of its constituent lookup headers with any
             extra data. If ``'all'`` then, for each variable in the
-            dataset, print all of its consituent lookup headers with
+            dataset, print all of its constituent lookup headers with
             any extra data. If `None` (the default) then no lookup
             headers are printed.
 
-        store_record_info: `None` or `dict`, optional
+        record_info: `None` or `dict`, optional
             If set to a dictionary, then that dictionary will be
-            populated in-place, for each variable in the dataset, with
-            the `RecordInfo` objects that provide the consituent
-            lookup headers and associated information. If `None` (the
-            default) then does nothing.
+            updated in-place for each variable in the dataset. A key
+            is created from the data variable name, with a
+            corresponding value of the list of `RecordInfo` objects
+            that provide the constituent lookup headers and associated
+            information. If `None` (the default) then does nothing.
 
         _data_variable_index: `list` or `None`, optional
             The dictionary representations of the data variables. By
@@ -232,8 +233,8 @@ class File(Mapping):
         height_at_top_of_model=None,
         local_os_cache=True,
         verbose=0,
-        print_lookup_headers=None,
-        store_record_info=None,
+        display_lookup_headers=None,
+        record_info=None,
         *,
         _data_variable_index=None,
     ):
@@ -311,11 +312,11 @@ class File(Mapping):
 
             self.protocol = protocol
 
-        if print_lookup_headers is not None:
-            if not isinstance(print_lookup_headers, str):
+        if display_lookup_headers is not None:
+            if not isinstance(display_lookup_headers, str):
                 raise ValueError(
                     "print_lookup_headers must be None or 'first' or 'all'. "
-                    f"Got: {print_lookup_headers!r}"
+                    f"Got: {display_lookup_headers!r}"
                 )
 
             if print_lookup_headers == "first":
@@ -323,17 +324,16 @@ class File(Mapping):
             elif print_lookup_headers == "all":
                 index = slice(None)
             else:
+                ok  = False
                 raise ValueError(
                     "print_lookup_headers must be None or 'first' or 'all'. "
                     f"Got: {print_lookup_headers!r}"
                 )
 
-        if store_record_info is not None and not isinstance(
-            store_record_info, dict
-        ):
+        if record_info is not None and not isinstance( record_info,dict ):
             raise ValueError(
-                "store_record_info must be None or a dictionary. "
-                f"Got: {store_record_info!r}"
+                "record_info must be None or a dictionary. "
+                f"Got: {record_info!r}"
             )
 
         self._fh = self._reader
@@ -477,8 +477,8 @@ class File(Mapping):
                 # this data variable.
                 nhdr = len(data_variable.chunk_records)
                 s = "s" if nhdr > 1 else ""
-                n = 1 if print_lookup_headers == "first" else nhdr
-                title = f"{name}: {n}/{nhdr} lookup header{s}"
+                n = f"1/" if print_lookup_headers == "first" else ""
+                title = f"{name}: {n}{nhdr} lookup header{s}"
                 title += f"\n{'-' * len(title)}"
 
                 lookups = "\n\n".join(
@@ -487,10 +487,10 @@ class File(Mapping):
 
                 print(f"{title}\n{lookups}\n")
 
-            if store_record_info is not None:
+            if record_info is not None:
                 # Store the `RecordInfo` objects for this data
                 # variable
-                store_record_info[name] = data_variable.chunk_records
+                record_info[name] = data_variable.chunk_records
 
         # Try to add an "orog" formula term to vertical
         # coordinates. We have to do this after all of the variables
