@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..constants import _header_names
+
 
 @dataclass(frozen=True)
 class FileTypeInfo:
@@ -72,6 +74,28 @@ class RecordInfo:
     byte_order: int
     extra_data: dict = field(default_factory=dict)
     chunk_coords: tuple = field(default_factory=tuple)
+
+    def __str__(self):
+        import textwrap
+
+        int_hdr = self.int_hdr
+        real_hdr = self.real_hdr
+
+        i = [f"{_header_names[n]}::{int_hdr[n]}" for n in range(45)]
+        i = " ".join(i)
+
+        r = [f"{_header_names[n]}::{real_hdr[n - 45]}" for n in range(45, 64)]
+        r = " ".join(r)
+
+        x = textwrap.fill(" ".join((i, r)), width=79)
+        out = [x.replace("::", ": ")]
+
+        if self.extra_data:
+            out.append("EXTRA DATA:")
+            for key, value in sorted(self.extra_data.items()):
+                out.append(f"{key}: {value!r}")
+
+        return "\n".join(out)
 
 
 @dataclass(frozen=True)

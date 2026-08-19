@@ -311,6 +311,15 @@ def test_File__getitem__():
             f[n]
 
 
+def test_File_record_info():
+    r = {}
+    umfive.File("tests/data/test2.pp", record_info=r)
+    assert len(r) == 1
+    assert list(r) == ["UM_m01s15i201_vn405"]
+    assert len(r["UM_m01s15i201_vn405"]) == 15
+    assert isinstance(r["UM_m01s15i201_vn405"][0], umfive.RecordInfo)
+
+
 def test_File__len__():
     f = umfive.File("tests/data/test2.pp")
     assert len(f) == len(f.variables)
