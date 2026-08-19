@@ -1,40 +1,51 @@
-import signal
-import sys
+"""An `ncdump -h` view of a UK Met Office PP or fields file dataset."""
 
-from .inspect import ppncdump
+import sys
 
 
 def main(argv=None):
-    """Provides some of the functionality of ncdump and h5dump.
-
-    By default this will attempt to do something similar to ncdump.
-    - h will return this information
-    - s is accepted for compatibility with p5dump output modes.
-
-    """
     if argv is None:
         argv = sys.argv[1:]
 
     match argv:
         case []:
-            raise ValueError("No filename provided")
-        case ["-h"]:
-            print(main.__doc__)
+            print(
+                """An `ncdump -h` view of a UK Met Office PP or fields file dataset.
+Usage: umdump [<name of a PP or fields file dataset>]"""
+            )
             return 0
-        case ["--help"]:
-            print(main.__doc__)
-            return 0
+
         case [filename]:
-            ppncdump(filename, special=False)
+            try:
+                import xnetcdf
+            except Exception as error:
+                print(
+                    f"Error: umdump requires the python module 'xnetcdf' "
+                    f"to be installed ({error})"
+                )
+                return 2
+
+            try:
+                x = xnetcdf.Dataset(filename, backend="umfive")
+                x.ncdump()
+            except Exception as error:
+                print(
+                    "Error: Python module 'xnetcdf' failed to generate the "
+                    f"output ({error})"
+                )
+                return 3
+
             return 0
-        case ["-s", filename]:
-            ppncdump(filename, special=True)
-            return 0
+
         case _:
-            raise ValueError(f"Invalid arguments: {argv}")
+            args = " ".join([f"{arg}" for arg in argv])
+            print(f"Invalid arguments: {args}")
+            return 1
 
 
 if __name__ == "__main__":
+    import signal
+
     try:
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     except (AttributeError, ValueError):
@@ -47,7 +58,9 @@ if __name__ == "__main__":
             sys.stderr.flush()
         except Exception:
             pass
+
         sys.exit(0)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+
+    except Exception as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(4)

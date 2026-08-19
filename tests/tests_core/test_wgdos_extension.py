@@ -8,7 +8,8 @@ def test_wgdos_extension_importable():
 
 def test_wgdos_read():
     f = File("tests/data/wgdos_packed.pp")
-    data = f[f.data_variables[0]][...]
+    name = tuple(f.data_variables)[0]
+    data = f[name][...]
     assert data.shape == (1, 1, 145, 192)
     assert data.item(0) == -3.078369140625
     assert data.item(-1) == -9.35107421875

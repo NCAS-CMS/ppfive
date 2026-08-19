@@ -7,7 +7,7 @@ import umfive
 
 
 def _first_data_variable_name(f: umfive.File) -> str:
-    return f.data_variables[0]
+    return f._data_variable_names[0]
 
 
 def test_local_parallel_matches_serial():

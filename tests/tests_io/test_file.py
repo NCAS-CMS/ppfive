@@ -1,9 +1,14 @@
 from io import BytesIO
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import umfive
+
+# Important: set linewidth=120 to ensure that dump outputs match those
+# in reference files (see generate_dump_outputs.py)
+np.set_printoptions(linewidth=120)
 
 
 @pytest.mark.parametrize(
@@ -37,7 +42,7 @@ def test_File_with_builtin_open_as_input():
         f = umfive.File(fh)
         assert (
             repr(f)
-            == "<umfive.File: tests/data/test2.pp, 1 data variable, 9 metadata variables>"
+            == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
         )
 
 
@@ -48,7 +53,7 @@ def test_File_with_bytesio_as_input():
     f = umfive.File(raw)
     assert (
         repr(f)
-        == "<umfive.File: <file-like>, 1 data variable, 9 metadata variables>"
+        == "<file-like>: <umfive.File: 1 data variable, 9 metadata variables>"
     )
 
 
