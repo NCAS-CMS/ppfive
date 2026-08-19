@@ -7,18 +7,19 @@ Overview
 `umfive` is a Python open source library for representing `UK Met
 Office PP and UM fields file datasets
 <https://artefacts.ceda.ac.uk/badc_datadocs/um/umdp_F3-UMDPF3.pdf>`_
-with the `pyfive` HDF5 API. It maps the data and metadata described by
-the dataset's lookup headers onto HDF5 dataset structures.
+with the `pyfive <https://pyfive.readthedocs.io>`_ API. It maps the
+data and metadata described by the dataset onto netCDF-like
+structures.
 
 The contents of a PP or UM fields file dataset are mapped to a
-`umfive.File` object that contains CF dimensions and coordinate
-variables (`umfive.DimensionScale` objects); auxiliary coordinate,
-domain ancillary, bounds, and grid mapping variables
-(`umfive.Variable` objects); and data variables (as
-`umfive.DataVariable` objects).
+`umfive.File` object that follows the `CF conventions
+<https://cfconventions.org/>`_, in that it contains data variables
+(`umfive.DataVariable` objects); dimensions and coordinate variables
+(`umfive.DimensionScale` objects); and auxiliary coordinate, domain
+ancillary, bounds, and grid mapping variables (`umfive.Variable`
+objects).
 
-32-bit and 64-bit PP and UM fields files of any endian-ness can be
-read.
+32-bit and 64-bit PP and fields files of any endian-ness can be read.
 
 2-d "slices" within a single file are always combined, where possible,
 into fields with 3-d or 4-d data.
@@ -32,19 +33,21 @@ contents:
 .. code-block:: python
 
    >>> import umfive
-   >>> u = umfive.File('path/to/your/dataset')  # Open the dataset
+   >>> u = umfive.File('path/to/dataset')  # Open the dataset
    >>> print(u)  # Inspect the dataset contents
-   path/to/your/dataset <umfive.File: 1 data variable, 7 metadata variables>
+   path/to/dataset: <umfive.File: 1 data variable, 9 metadata variables>
    Data variables:
-       UM_m01s00i001_vn405: <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>
+       UM_m01s15i201_vn405: <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
    Metadata variables:
        time: <umfive.DimensionScale: time, shape=(3,)>
        bounds2: <umfive.DimensionScale: bounds2, size=2>
        time_bounds: <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>
-       latitude: <umfive.DimensionScale: latitude, shape=(73,)>
-       latitude_bounds: <umfive.Variable: latitude_bounds, shape=(73, 2), dimensions=(latitude, bounds2)>
-       longitude: <umfive.DimensionScale: longitude, shape=(96,)>
-       longitude_bounds: <umfive.Variable: longitude_bounds, shape=(96, 2), dimensions=(longitude, bounds2)>
+       air_pressure: <umfive.DimensionScale: air_pressure, shape=(5,)>
+       grid_latitude: <umfive.DimensionScale: grid_latitude, shape=(110,)>
+       grid_latitude_bounds: <umfive.Variable: grid_latitude_bounds, shape=(110, 2), dimensions=(grid_latitude, bounds2)>
+       grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
+       grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
+       rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
    >>> u['time'].attrs  # Get a variable's attributes
    {'CLASS': b'DIMENSION_SCALE',
     'NAME': b'netCDF dimension coordinate variable',
@@ -56,6 +59,33 @@ contents:
     'units': 'days since 2159-1-1'}
    >>> u['time'][...]  # Get a variable's data array
    array([ 510.,  870., 1230.])
+
+A netCDF (as opposed to HDF5) view is easily found via the `xnetcdf
+<https://xnetcdf.readthedocs.io>`_ library:
+
+.. code-block:: python
+
+   >>> import xnetcdf
+   >>> x = xnetcdf.Dataset(u)
+   >>> print(x)
+   path/to/dataset: <xnetcdf.Dataset: /, 5 dimensions, 9 variables, 0 groups>
+        Dimensions:
+            time: <xnetcdf.Dimension: /time, size=3>
+            bounds2: <xnetcdf.Dimension: /bounds2, size=2>
+            air_pressure: <xnetcdf.Dimension: /air_pressure, size=5>
+            grid_latitude: <xnetcdf.Dimension: /grid_latitude, size=110>
+            grid_longitude: <xnetcdf.Dimension: /grid_longitude, size=106>
+        Variables:
+            UM_m01s15i201_vn405: <xnetcdf.Variable: /UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(/time, /air_pressure, /grid_latitude, /grid_longitude)>
+            time: <xnetcdf.Variable: /time, shape=(3,), dimensions=(/time,)>
+            time_bounds: <xnetcdf.Variable: /time_bounds, shape=(3, 2), dimensions=(/time, /bounds2)>
+            air_pressure: <xnetcdf.Variable: /air_pressure, shape=(5,), dimensions=(/air_pressure,)>
+            grid_latitude: <xnetcdf.Variable: /grid_latitude, shape=(110,), dimensions=(/grid_latitude,)>
+            grid_latitude_bounds: <xnetcdf.Variable: /grid_latitude_bounds, shape=(110, 2), dimensions=(/grid_latitude, /bounds2)>
+            grid_longitude: <xnetcdf.Variable: /grid_longitude, shape=(106,), dimensions=(/grid_longitude,)>
+            grid_longitude_bounds: <xnetcdf.Variable: /grid_longitude_bounds, shape=(106, 2), dimensions=(/grid_longitude, /bounds2)>
+            rotated_latitude_longitude: <xnetcdf.Variable: /rotated_latitude_longitude, shape=(), dimensions=()>
+
 
 See :ref:`Quick-start` for more examples.
 

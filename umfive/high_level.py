@@ -71,9 +71,9 @@ _cache_date2num = {}
 
 
 class File(Mapping):
-    """Read a PP file or UM fields file.
+    """Read a PP file or fields file.
 
-    32-bit and 64-bit PP and UM fields files of any endian-ness can be
+    32-bit and 64-bit PP and fields files of any endian-ness can be
     read.
 
     2-d "slices" within a single file are always combined, where
@@ -140,11 +140,12 @@ class File(Mapping):
     :Parameters:
 
         filename:
-            The definition of the PP or UM dataset to be read.  Must
-            either be string-like (such as `str` or `pathlib.Path`) or
-            file-like (such as `io.BufferedReader`, the result of an
-            `fsspec` file system open, or a subclass of
-            `umfive.ByteReader`).
+
+            The definition of the PP or field file dataset to be read.
+            Must either be string-like (such as `str` or
+            `pathlib.Path`) or file-like (such as `io.BufferedReader`,
+            the result of an `fsspec` file system open, or a subclass
+            of `umfive.ByteReader`).
 
         mode: `str`
             The data access mode. Only ``'r'`` (read-only) is allowed.
