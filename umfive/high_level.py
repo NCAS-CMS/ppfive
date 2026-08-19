@@ -201,11 +201,27 @@ class File(Mapping):
              and higher (or the value ``-1``) produce the same
              maximally verbose output.
 
+        display_lookup_headers: `None` or `str`, optional
+            If ``'first'`` then, for each variable in the dataset,
+            print the first of its constituent lookup headers with any
+            extra data. If ``'all'`` then, for each variable in the
+            dataset, print all of its constituent lookup headers with
+            any extra data. If `None` (the default) then no lookup
+            headers are printed.
+
+        record_info: `None` or `dict`, optional
+            If set to a dictionary, then that dictionary will be
+            updated in-place for each variable in the dataset. A key
+            is created from the data variable name, with a
+            corresponding value of the list of `RecordInfo` objects
+            that provide the constituent lookup headers and associated
+            information. If `None` (the default) then does nothing.
+
         _data_variable_index: `list` or `None`, optional
-             The dictionary representations of the data variables. By
-             default this is derived internally from *fileaname*, so
-             when *_data_variable_index* is provided, *filename* must
-             be `None`. See the `__init__` code for details.
+            The dictionary representations of the data variables. By
+            default this is derived internally from *fileaname*, so
+            when *_data_variable_index* is provided, *filename* must
+            be `None`. See the `__init__` code for details.
 
     """
 
@@ -217,6 +233,8 @@ class File(Mapping):
         height_at_top_of_model=None,
         local_os_cache=True,
         verbose=0,
+        display_lookup_headers=None,
+        record_info=None,
         *,
         _data_variable_index=None,
     ):
@@ -293,6 +311,29 @@ class File(Mapping):
                 cat_range_allowed = True
 
             self.protocol = protocol
+
+        if display_lookup_headers is not None:
+            ok = True
+            if not isinstance(display_lookup_headers, str):
+                ok = False
+            elif display_lookup_headers == "first":
+                index = slice(0, 1)
+            elif display_lookup_headers == "all":
+                index = slice(None)
+            else:
+                ok = False
+
+            if not ok:
+                raise ValueError(
+                    "display_lookup_headers must be 'first', 'all', or None. "
+                    f"Got: {display_lookup_headers!r}"
+                )
+
+        if record_info is not None and not isinstance(record_info, dict):
+            raise ValueError(
+                "record_info must be None or a dictionary. "
+                f"Got: {record_info!r}"
+            )
 
         self._fh = self._reader
         self.mode = mode
@@ -429,6 +470,25 @@ class File(Mapping):
                 DIMENSION_LIST=DIMENSION_LIST,
             )
             data_variable_names.append(name)
+
+            if display_lookup_headers:
+                # Print lookup headers for this data variable
+                nhdr = len(data_variable.chunk_records)
+                s = "s" if nhdr > 1 else ""
+                n = "1/" if display_lookup_headers == "first" else ""
+                title = f"{name}: {n}{nhdr} lookup header{s}"
+                title += f"\n{'-' * len(title)}"
+
+                lookups = "\n\n".join(
+                    [str(rec) for rec in data_variable.chunk_records[index]]
+                )
+
+                print(f"{title}\n{lookups}\n")
+
+            if record_info is not None:
+                # Store the `RecordInfo` objects for this data
+                # variable
+                record_info[name] = data_variable.chunk_records
 
         # Try to add an "orog" formula term to vertical
         # coordinates. We have to do this after all of the variables
@@ -866,9 +926,9 @@ class DataVariableMetadata:
         self._Netcdf4Dimid = Netcdf4Dimid
 
         chunk_records = meta["chunk_records"]
-        self._chunk_records = chunk_records
+        self.chunk_records = chunk_records
 
-        rec0 = chunk_records[0]  # ["record"]
+        rec0 = chunk_records[0]
         int_hdr = rec0.int_hdr
         real_hdr = rec0.real_hdr
         self._int_hdr_dtype = int_hdr.dtype
@@ -1065,15 +1125,10 @@ class DataVariableMetadata:
             # The 'Z' headers might be in the wrong order (i.e. not in the
             # order that we want the coordinate arrays to be), so let's
             # get them in correct order.
-            #            z_recs = sorted(z_recs, key=lambda x: x["chunk_coords"])
-            #            z_recs = sorted(z_recs, key=lambda x: x["record"].chunk_coords)
             z_recs = sorted(z_recs, key=lambda x: x.chunk_coords)
         else:
             z_recs = []
             t_recs = chunk_records
-
-        #        z_recs = [chunk_rec["record"] for chunk_rec in z_recs]
-        #        t_recs = [chunk_rec["record"] for chunk_rec in t_recs]
 
         self._z_recs = z_recs
         self._t_recs = t_recs
@@ -2601,8 +2656,7 @@ class DataVariableMetadata:
         # This PP/FF field is a timeseries. The validity time is taken
         # to be the time for the first sample, the data time for the
         # last sample, with the others evenly between.
-        #        rec = self._chunk_recs[0]["record"]
-        rec = self._chunk_records[0]
+        rec = self.chunk_records[0]
         vtime = self.time_since_vtime(rec)
         dtime = self.time_since_dtime(rec)
 

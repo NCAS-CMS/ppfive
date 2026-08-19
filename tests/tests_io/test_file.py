@@ -1,14 +1,9 @@
 from io import BytesIO
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 import umfive
-
-# Important: set linewidth=120 to ensure that dump outputs match those
-# in reference files (see generate_dump_outputs.py)
-np.set_printoptions(linewidth=120)
 
 
 @pytest.mark.parametrize(

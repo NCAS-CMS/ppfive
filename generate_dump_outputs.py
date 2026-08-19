@@ -1,10 +1,6 @@
 """Generate the dump outputs in tests/data."""
 
-import numpy as np
-
 import umfive
-
-np.set_printoptions(linewidth=120)
 
 directory = "tests/data"
 
