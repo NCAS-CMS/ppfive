@@ -30,10 +30,10 @@ and inspect its contents:
         u.dump(data=True)
 
         # Access a variable
-	var = u[TODO]
+	var = u['UM_m01s15i201_vn405']
 
         # A one-line summary of the variable
-        print(repr(u))
+        print(repr(var))
 	
         # Print the variable attributes
         print(var.attrs)
@@ -84,7 +84,7 @@ spanned by their data arrays.
        grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
        rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
 	
-.. rubric:: Access a variable, its attributes and its data array
+.. rubric:: Access variable attributes.
 
 See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
 
@@ -93,9 +93,9 @@ See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
    >>> var = u['UM_m01s15i201_vn405']
    >>> var.attrs
    {'DIMENSION_LIST': (('time',),
-     ('air_pressure',),
-     ('grid_latitude',),
-     ('grid_longitude',)),
+                       ('air_pressure',),
+                       ('grid_latitude',),
+                       ('grid_longitude',)),
     '_FillValue': np.float32(-1.0737418e+09),
     'cell_methods': 'time: mean',
     'coordinates': 'time air_pressure grid_latitude grid_longitude',
@@ -115,8 +115,38 @@ See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
     'um_stash_source': 'm01s15i201',
     'um_version': '4.5',
     'units': 'm s-1'}
+   >>> air_pressure = u['air_pressure']
+   >>> air_pressure.attrs
+   {'CLASS': b'DIMENSION_SCALE',
+    'NAME': b'netCDF dimension coordinate variable',
+    '_Netcdf4Dimid': np.int32(2),
+    'axis': 'Z',
+    'positive': 'down',
+    'standard_name': 'air_pressure',
+    'units': 'hPa'}
+	
+.. rubric:: Access variable data.
+
+.. code-block:: python
+	
    >>> var[...]
-   arrayTODO([ 22.5,  67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5])
+   array([[[[-1.28504544e-01,  3.05374086e-01,  8.93456340e-01, ...,
+              4.12485838e+00,  4.27008438e+00,  4.22145319e+00],
+            [ 4.74474072e-01,  9.77664232e-01,  1.43804467e+00, ...,
+              3.98733783e+00,  4.09150171e+00,  4.04539061e+00],
+            [ 8.05260956e-01,  1.24306083e+00,  1.74817479e+00, ...,
+              3.80105686e+00,  3.98432851e+00,  3.94045901e+00],
+            ...,
+            [ 5.67281818e+00,  5.62275362e+00,  5.59070444e+00, ...,
+             -1.69666624e+00, -1.95548487e+00, -1.96797502e+00],
+            [ 5.14257669e+00,  5.06531000e+00,  5.00876808e+00, ...,
+             -1.68950760e+00, -1.70027304e+00, -1.71349967e+00],
+            [ 4.59499311e+00,  4.50737619e+00,  4.43036985e+00, ...,
+             -1.15786588e+00, -1.21203947e+00, -1.22635651e+00]]]],
+         shape=(3, 5, 110, 106), dtype=float32)
+   >>> air_pressure[...]
+   array([850.00006 , 700.00006 , 500.00003 , 250.00002 ,  50.000004],
+         dtype=float32)
 
 .. rubric:: Display a variable's attributes and data array using the
             variable's `~xnetcdf.Variable.dump` method
