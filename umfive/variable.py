@@ -383,6 +383,11 @@ class _Mixin:
 
             `tuple`
 
+        :Examples:
+
+        >>> d.chunks
+        (1, 1, 73, 96)
+
         """
         return self._chunks
 
@@ -395,6 +400,11 @@ class _Mixin:
             `tuple` or `None`
                 The dimension names, or `None` if they are undefined.
 
+        :Examples:
+
+        >>> d.dimensions
+        ('time', 'air_pressure', 'latitude', 'longitude')
+
         """
         DIMENSION_LIST = self.attrs.get("DIMENSION_LIST")
         if DIMENSION_LIST is None:
@@ -406,9 +416,18 @@ class _Mixin:
     def maxshape(self):
         """Maximum shape of the data.
 
+        Always the same as the `shape`.
+        
         :Returns:
 
             `tuple`
+
+        :Examples:
+
+        >>> d.maxshape
+        (12, 19, 73, 96)
+        >>> d.maxshape == d.shape
+        True
 
         """
         return self.shape
@@ -701,8 +720,25 @@ class DimensionScale(_Mixin):
             `tuple`
                 The dimension name.
 
+        :Examples:
+
+        >>> d.dimensions
+        ('time',)
+
         """
         return (self.name,)
+
+
+    @property
+    def has_coordinates(self):
+        """Whether that dimension has a coordinate data array.
+
+        :Returns:
+
+            `bool`
+        
+        """
+        return self._data is not None
 
 
 class Variable(_Mixin):
@@ -1048,6 +1084,16 @@ class DataVariable(_Mixin):
         These are the unique values of the LBxPACK across all data
         chunks in the variable.
 
+        :Returns:
+
+            `list`
+                The unique LBPACK values.
+        
+        :Examples:
+
+        >>> d.lbpack
+        [0]
+
         """
         return sorted(
             {int(rec.int_hdr[INDEX_LBPACK]) for rec in self.chunk_records}
@@ -1064,6 +1110,16 @@ class DataVariable(_Mixin):
         2: Data packed using CRAY 32 bit method.
         3: Data compressed using the GRIB method.
         4: Data compressed using Run Length Encoding
+
+        :Returns:
+
+            `list`
+                The unique data chunk packing flags, excluding ``0``.
+        
+        :Examples:
+
+        >>> d.packing_modes
+        []
 
         """
         out = {
@@ -1120,6 +1176,11 @@ class DataVariable(_Mixin):
                 The the "thread_count" and "cat_range_allowed"
                 parameters to be used when accessing the data. See
                 `set_parallelism` for details.
+
+        :Examples:
+
+        >>> d.get_parallelism()
+        {'thread_count': 0, 'cat_range_allowed': False}
 
         """
         return self.data_loader_options.copy()

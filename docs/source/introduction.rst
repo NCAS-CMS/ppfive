@@ -7,8 +7,9 @@ Overview
 `umfive` is a Python open source library for representing `UK Met
 Office PP and UM fields file datasets
 <https://artefacts.ceda.ac.uk/badc_datadocs/um/umdp_F3-UMDPF3.pdf>`_
-with `CF-netCDF <https://cfconventions.org/>`_-like structures that follow the `pyfive
-<https://pyfive.readthedocs.io>`_ API.
+with `CF-netCDF <https://cfconventions.org/>`_-like structures that
+follow the API of `pyfive <https://pyfive.readthedocs.io>`_, an HDF5
+reader.
 
 The contents of a PP or UM fields file dataset are mapped to a
 `umfive.File` object that follows the `CF conventions
@@ -59,8 +60,9 @@ contents:
    >>> u['time'][...]  # Get a variable's data array
    array([ 510.,  870., 1230.])
 
-A netCDF (as opposed to HDF5) view is easily found via the `xnetcdf
-<https://xnetcdf.readthedocs.io>`_ library:
+A netCDF (as opposed to HDF5) view that separates out the dimensions
+is easily found via the `xnetcdf <https://xnetcdf.readthedocs.io>`_
+library:
 
 .. code-block:: python
 
@@ -107,14 +109,15 @@ Dataset definitions
 A dataset can be passed to `umfive.File` with one of the following
 dataset definitions:
 
-- A string-like path name to the dataset (such as `str` or
+- A string-like path name to a local dataset (such as `str` or
   `pathlib.Path` instance).
   
-- A file-like object that accesses the dataset (such as
+- A file-like object that accesses a local or remote dataset (such as
   `io.BufferedReader` or the result of an `fsspec` file system open)
   
-- A subclass of `umfive.ByteReader` (such as `umfive.LocalPosixReader`
-  or `umfive.FileObjReader`).
+- A subclass of `umfive.ByteReader` that accesses a local or remote
+  dataset (such as `umfive.LocalPosixReader` or
+  `umfive.FileObjReader`).
 
 Attributes
 ----------
@@ -179,8 +182,8 @@ Performance
 
 The read of a dataset is lazy in that only the metadata (i.e. the
 lookup headers and any extra data) are accessed during the initial
-read. A data array in the dataset is then accessed on demand, and then
-only for the part of the data array requested by the indexing. Data
-reads are parallelised over the 2-d slices stored for each lookup
-header (see `umfive.File.set_parallelism` and
+read of the dataset. A data array in the dataset is then accessed on
+demand, and then only for the part of the data array requested by the
+indexing. Data array reads are parallelised over the 2-d slices
+defined by each lookup header (see `umfive.File.set_parallelism` and
 `umfive.File.get_parallelism`).

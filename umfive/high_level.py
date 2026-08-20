@@ -608,14 +608,15 @@ class File(Mapping):
     def data_variables(self):
         """The data variables.
 
-        .. seealso:: `metadata_variables`, `variables`
+        .. seealso:: `dimension_variables`, `metadata_variables`,
+                     `variables`
         
         :Returns:
 
             `dict`
                 The data variables, keyed by their names.
 
-        :Eaxmples:
+        :Examples:
 
         >>> u.data_variables
         {'UM_m01s00i001_vn405': <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>,
@@ -631,17 +632,49 @@ class File(Mapping):
         return out
 
     @property
+    def dimension_variables(self):
+        """The data variables.
+
+        .. seealso:: `data_variables`, `metadata_variables`,
+                     `variables`
+        
+        :Returns:
+
+            `dict`
+                The data variables, keyed by their names.
+
+        :Examples:
+
+        >>> u.dimension_variables
+        {'time': <umfive.DimensionScale: time, shape=(3,)>,
+         'bounds2': <umfive.DimensionScale: bounds2, size=2>,
+         'air_pressure': <umfive.DimensionScale: air_pressure, shape=(5,)>,
+         'grid_latitude': <umfive.DimensionScale: grid_latitude, shape=(110,)>,
+         'grid_longitude': <umfive.DimensionScale: grid_longitude, shape=(106,)>}
+
+        """
+        out = getattr(self, "_dimension_variables", None)
+        if out is None:
+            metadata_variables = self.metadata_variables
+            out = {name: var for name, var in self.metadata_variables.items()
+                   if isinstance(var, DimensionScale)}
+            self._dimension_variables = out
+
+        return out
+
+    @property
     def metadata_variables(self):
         """The metadata variables.
 
-        .. seealso:: `data_variables`, `variables`
+        .. seealso:: `dimension_variables`, `data_variables`,
+                     `variables`
         
         :Returns:
 
             `dict`
                 The metadata variables, keyed by their names.
         
-        :Eaxmples:
+        :Examples:
 
         >>> u.metadata_variables
         {'time': <umfive.DimensionScale: time, shape=(3,)>,
@@ -669,14 +702,15 @@ class File(Mapping):
     def variables(self):
         """All (data and metadata) variables.
 
-        .. seealso:: `data_variables`, `metadata_variables`
+        .. seealso:: `dimension_variables`, `data_variables`,
+                     `metadata_variables`
         
         :Returns:
 
             `dict`
                 The variables, keyed by their names.
 
-        :Eaxmples:
+        :Examples:
 
         >>> u.variables
         {'UM_m01s00i001_vn405': <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>,
@@ -852,6 +886,11 @@ class File(Mapping):
                 For each data variable, the "thread_count" and
                 "cat_range_allowed" parameters to be used when
                 accessing the data. See `set_parallelism` for details.
+
+        :Examples:
+
+        >>> u.get_parallelism()
+        {'UM_m01s15i201_vn405': {'thread_count': 0, 'cat_range_allowed': False}}
 
         """
         return {
