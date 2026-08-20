@@ -12,11 +12,12 @@ Here is an example of how to use `umfive` to open a dataset
 and inspect its contents:
 
 .. code-block:: python
+   :caption: Example
 
     import umfive
 
     # Open the dataset
-    with umfive.File('test_file') as u:
+    with umfive.File('test2.pp') as u:
         # A one-line summary of the dataset
         print(repr(u))
 
@@ -43,9 +44,10 @@ and inspect its contents:
 	    
 .. rubric:: Import the library and open the dataset.
 
-See `umfive.File`.
+See :ref:`Dataset`.
 
 .. code-block:: python
+   :caption: Example
 
    >>> import umfive
    >>> u = umfive.File(TODO)
@@ -56,9 +58,10 @@ This one-line description includes the dataset name, and how many data
 variables and metadata variables there are.
 
 .. code-block:: python
+   :caption: Example
 		
    >>> u
-   TODO: <umfive.File: 1 data variable, 9 metadata variables>
+   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
 
 .. rubric:: Display the `str` description of the dataset
 
@@ -68,6 +71,7 @@ data and metadata variable. The `umfive.DataVariable` and
 spanned by their data arrays.
 
 .. code-block:: python
+   :caption: Example
 		
    >>> print(u)
    TODO: <umfive.File: 1 data variable, 9 metadata variables>
@@ -84,11 +88,12 @@ spanned by their data arrays.
        grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
        rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
 	
-.. rubric:: Access variable attributes.
+.. rubric:: Access variable attributes
 
-See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
+See :ref:`Variable-attributes`.
 
 .. code-block:: python
+   :caption: Example
 		
    >>> var = u['UM_m01s15i201_vn405']
    >>> var.attrs
@@ -127,7 +132,10 @@ See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
 	
 .. rubric:: Access variable data.
 
+See :ref:`Variable-data-and-indexing`.
+
 .. code-block:: python
+   :caption: Example
 	
    >>> var[...]
    array([[[[-1.28504544e-01,  3.05374086e-01,  8.93456340e-01, ...,
@@ -152,6 +160,7 @@ See :ref:`Variable-attributes` and :ref:`Variable-data-and-indexing`.
             variable's `~xnetcdf.Variable.dump` method
 
 .. code-block:: python
+   :caption: Example
 		
    >>> var.dump(data=True)
    lon: <xnetcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
@@ -171,6 +180,7 @@ of the group hierarchy shown can be limited with the ``depth`` keyword
 argument to `~xnetcdf.Dataset.dump` method).
 	     
 .. code-block:: python
+   :caption: Example
 
    >>> nc.dump()
    test.nc: <xnetcdf.Dataset: /, 1 dimension, 1 variable, 1 group>
@@ -259,6 +269,7 @@ data array values (abbreviated if large, which is not the case here)
 of all variables.
 	     
 .. code-block:: python
+   :caption: Example
 
    >>> nc.dump(data=True)
    test.nc: <xnetcdf.Dataset: /, 1 dimension, 1 variable, 1 group>
@@ -373,6 +384,7 @@ Represents the dataset in CDL, omitting the data arrays, reproducing
 ``$ ncdump -h test.nc`` output.
 	     
 .. code-block:: python
+   :caption: Example
 	     
    >>> nc.ncdump()
    netcdf test.nc {

@@ -10,7 +10,8 @@
    introduction
    installation
    quickstart
-   cf_mapping
+   cf_netcdf_structure
+   xnetcdf
    api_reference
    changelog
    contributing

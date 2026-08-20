@@ -607,7 +607,7 @@ class File(Mapping):
     @property
     def data_variables(self):
         """The data variables.
-
+        
         .. seealso:: `dimension_variables`, `metadata_variables`,
                      `variables`
         
@@ -623,7 +623,7 @@ class File(Mapping):
          'UM_m01s16i222_vn405': <umfive.DataVariable: UM_m01s16i222_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>}
 
         """
-        out = getattr(self, "_data_variables", None)
+        out = getattr(self, "_data_variables", None) ###
         if out is None:
             variables = self.variables
             out = {name: variables[name] for name in self._data_variable_names}
