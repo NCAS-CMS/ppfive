@@ -7,13 +7,12 @@ Overview
 `umfive` is a Python open source library for representing `UK Met
 Office PP and UM fields file datasets
 <https://artefacts.ceda.ac.uk/badc_datadocs/um/umdp_F3-UMDPF3.pdf>`_
-with the `pyfive <https://pyfive.readthedocs.io>`_ API. It maps the
-data and metadata described by the dataset onto netCDF-like
-structures.
+with `CF-netCDF <https://cfconventions.org/>`_-like structures that follow the `pyfive
+<https://pyfive.readthedocs.io>`_ API.
 
 The contents of a PP or UM fields file dataset are mapped to a
 `umfive.File` object that follows the `CF conventions
-<https://cfconventions.org/>`_, in that it contains data variables
+<https://cfconventions.org/>`_ in that it contains data variables
 (`umfive.DataVariable` objects); dimensions and coordinate variables
 (`umfive.DimensionScale` objects); and auxiliary coordinate, domain
 ancillary, bounds, and grid mapping variables (`umfive.Variable`
@@ -21,8 +20,8 @@ objects).
 
 32-bit and 64-bit PP and fields files of any endian-ness can be read.
 
-2-d "slices" within a single file are always combined, where possible,
-into fields with 3-d or 4-d data.
+2-d "slices" defined by a single lookup headers are always combined,
+where possible, into fields with 3-d or 4-d data.
 
 A simple example
 ----------------

@@ -608,10 +608,18 @@ class File(Mapping):
     def data_variables(self):
         """The data variables.
 
+        .. seealso:: `metadata_variables`, `variables`
+        
         :Returns:
 
             `dict`
                 The data variables, keyed by their names.
+
+        :Eaxmples:
+
+        >>> u.data_variables
+        {'UM_m01s00i001_vn405': <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>,
+         'UM_m01s16i222_vn405': <umfive.DataVariable: UM_m01s16i222_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>}
 
         """
         out = getattr(self, "_data_variables", None)
@@ -626,10 +634,23 @@ class File(Mapping):
     def metadata_variables(self):
         """The metadata variables.
 
+        .. seealso:: `data_variables`, `variables`
+        
         :Returns:
 
             `dict`
                 The metadata variables, keyed by their names.
+        
+        :Eaxmples:
+
+        >>> u.metadata_variables
+        {'time': <umfive.DimensionScale: time, shape=(3,)>,
+         'bounds2': <umfive.DimensionScale: bounds2, size=2>,
+         'time_bounds': <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>,
+         'latitude': <umfive.DimensionScale: latitude, shape=(73,)>,
+         'latitude_bounds': <umfive.Variable: latitude_bounds, shape=(73, 2), dimensions=(latitude, bounds2)>,
+         'longitude': <umfive.DimensionScale: longitude, shape=(96,)>,
+         'longitude_bounds': <umfive.Variable: longitude_bounds, shape=(96, 2), dimensions=(longitude, bounds2)>}
 
         """
         out = getattr(self, "_metadata_variables", None)
@@ -648,10 +669,25 @@ class File(Mapping):
     def variables(self):
         """All (data and metadata) variables.
 
+        .. seealso:: `data_variables`, `metadata_variables`
+        
         :Returns:
 
             `dict`
                 The variables, keyed by their names.
+
+        :Eaxmples:
+
+        >>> u.variables
+        {'UM_m01s00i001_vn405': <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>,
+         'time': <umfive.DimensionScale: time, shape=(3,)>,
+         'bounds2': <umfive.DimensionScale: bounds2, size=2>,
+         'time_bounds': <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>,
+         'latitude': <umfive.DimensionScale: latitude, shape=(73,)>,
+         'latitude_bounds': <umfive.Variable: latitude_bounds, shape=(73, 2), dimensions=(latitude, bounds2)>,
+         'longitude': <umfive.DimensionScale: longitude, shape=(96,)>,
+         'longitude_bounds': <umfive.Variable: longitude_bounds, shape=(96, 2), dimensions=(longitude, bounds2)>,
+         'UM_m01s16i222_vn405': <umfive.DataVariable: UM_m01s16i222_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>}
 
         """
         return self._all_variables
