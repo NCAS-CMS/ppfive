@@ -11,7 +11,7 @@ def _first_data_variable_name(f: File) -> str:
 
 
 def test_subselection_reads_only_intersecting_chunks(monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with File(str(path)) as f:
         name = _first_data_variable_name(f)

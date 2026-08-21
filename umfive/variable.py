@@ -383,6 +383,11 @@ class _Mixin:
 
             `tuple`
 
+        :Examples:
+
+        >>> d.chunks
+        (1, 1, 73, 96)
+
         """
         return self._chunks
 
@@ -395,6 +400,11 @@ class _Mixin:
             `tuple` or `None`
                 The dimension names, or `None` if they are undefined.
 
+        :Examples:
+
+        >>> d.dimensions
+        ('time', 'air_pressure', 'latitude', 'longitude')
+
         """
         DIMENSION_LIST = self.attrs.get("DIMENSION_LIST")
         if DIMENSION_LIST is None:
@@ -406,9 +416,18 @@ class _Mixin:
     def maxshape(self):
         """Maximum shape of the data.
 
+        Always the same as the `shape`.
+
         :Returns:
 
             `tuple`
+
+        :Examples:
+
+        >>> d.maxshape
+        (12, 19, 73, 96)
+        >>> d.maxshape == d.shape
+        True
 
         """
         return self.shape
@@ -607,7 +626,7 @@ class DimensionScale(_Mixin):
             The dimension coordinate attributes, which override any
             with the same name set via *axiscode*.
 
-        file_obj: `File` or `None, optional
+        file_obj: `File` or `None`, optional
             The parent dataset.
 
         Netcdf4Dimid: `list` or `None`, optional
@@ -701,8 +720,24 @@ class DimensionScale(_Mixin):
             `tuple`
                 The dimension name.
 
+        :Examples:
+
+        >>> d.dimensions
+        ('time',)
+
         """
         return (self.name,)
+
+    @property
+    def has_coordinates(self):
+        """Whether the dimension has a coordinate data array.
+
+        :Returns:
+
+            `bool`
+
+        """
+        return self._data is not None
 
 
 class Variable(_Mixin):
@@ -973,13 +1008,14 @@ class DataVariable(_Mixin):
     @property
     def compression_modes(self):
         """The unique data chunk compression flags.
-
+        
         These are the unique values, excluding ``0``, of the N2 digit
         of LBPACK across all data chunks in the variable.
 
-        1: Data compressed using the N3rd group of compressed ﬁeld
-           index arrays in the dump.
-        2: Data compressed with the N3rd bit mask
+        * ``1``: Data compressed using the N3rd group of compressed
+                 ﬁeld index arrays in the dump.
+
+        * ``2``: Data compressed with the N3rd bit mask.
 
         """
         out = {
@@ -1048,6 +1084,16 @@ class DataVariable(_Mixin):
         These are the unique values of the LBxPACK across all data
         chunks in the variable.
 
+        :Returns:
+
+            `list`
+                The unique LBPACK values.
+
+        :Examples:
+
+        >>> d.lbpack
+        [0]
+
         """
         return sorted(
             {int(rec.int_hdr[INDEX_LBPACK]) for rec in self.chunk_records}
@@ -1064,6 +1110,16 @@ class DataVariable(_Mixin):
         2: Data packed using CRAY 32 bit method.
         3: Data compressed using the GRIB method.
         4: Data compressed using Run Length Encoding
+
+        :Returns:
+
+            `list`
+                The unique data chunk packing flags, excluding ``0``.
+
+        :Examples:
+
+        >>> d.packing_modes
+        []
 
         """
         out = {
@@ -1112,7 +1168,7 @@ class DataVariable(_Mixin):
     def get_parallelism(self):
         """Configure data chunk read parallelism configuration.
 
-        .. seealso:: `set_parallelism`
+        .. seealso:: `set_parallelism`, `File.get_parallelism`
 
         :Returns:
 
@@ -1120,6 +1176,11 @@ class DataVariable(_Mixin):
                 The the "thread_count" and "cat_range_allowed"
                 parameters to be used when accessing the data. See
                 `set_parallelism` for details.
+
+        :Examples:
+
+        >>> d.get_parallelism()
+        {'thread_count': 0, 'cat_range_allowed': False}
 
         """
         return self.data_loader_options.copy()
@@ -1171,7 +1232,7 @@ class DataVariable(_Mixin):
     def set_parallelism(self, max_thread_count=0, cat_range_allowed=True):
         """Configure data chunk read parallelism.
 
-        .. seealso:: `get_parallelism`
+        .. seealso:: `get_parallelism`, `File.set_parallelism`
 
         :Parameters:
 

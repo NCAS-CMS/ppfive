@@ -40,4 +40,4 @@ def _variable_names(dump_text: str) -> list[str]:
 
 def test_umdump_return_codes():
     assert umdump_main(["bad_arg"]) == 3
-    assert umdump_main(["tests/data/test2.pp"]) == 0
+    assert umdump_main(["tests/data/test.pp"]) == 0

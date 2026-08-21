@@ -4,7 +4,7 @@ import umfive
 
 
 def test_DataVariable_attributes():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     name = tuple(f.data_variables)[0]
     v = f[name]
     assert v.name == name
@@ -65,7 +65,7 @@ def test_DataVariableID_attributes():
 
 
 def test_DataVariable__getitem__():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     name = tuple(f.data_variables)[0]
     v = f[name]
 

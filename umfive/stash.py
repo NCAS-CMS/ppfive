@@ -256,7 +256,6 @@ def stash_table(reset=False):
             The currently loaded STASH table.
 
     """
-
     if reset or not _default_stash_table:
         load_stash_table(reset=reset)
 

@@ -17,11 +17,11 @@ import pytest
 from umfive import File, FileObjReader
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-PP_PATH = DATA_DIR / "test2.pp"
+PP_PATH = DATA_DIR / "test.pp"
 
 
 def test_FileObjReader_fs_protocol():
-    file_like = fsspec.filesystem("file").open("tests/data/test2.pp", "rb")
+    file_like = fsspec.filesystem("file").open("tests/data/test.pp", "rb")
     with FileObjReader(file_like) as f:
         assert "file" in f.fs.protocol
 
@@ -29,8 +29,8 @@ def test_FileObjReader_fs_protocol():
 @pytest.mark.parametrize(
     "path",
     [
-        "tests/data/test2.pp",
-        Path("tests/data/test2.pp"),
+        "tests/data/test.pp",
+        Path("tests/data/test.pp"),
     ],
 )
 def test_file_accepts_local_reader_as_first_argument(path):

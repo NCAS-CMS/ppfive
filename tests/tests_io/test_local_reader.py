@@ -45,15 +45,15 @@ def test_local_reader_reopens_after_stale_fd(tmp_path: Path):
 
 
 def test_LocalPosixReader_fs_protocol():
-    with LocalPosixReader("tests/data/test2.pp") as f:
+    with LocalPosixReader("tests/data/test.pp") as f:
         assert f.fs.protocol == "file"
 
 
 @pytest.mark.parametrize(
     "path",
     [
-        "tests/data/test2.pp",
-        Path("tests/data/test2.pp"),
+        "tests/data/test.pp",
+        Path("tests/data/test.pp"),
     ],
 )
 def test_LocalPosixReader_as_input_to_File(path):
@@ -61,7 +61,7 @@ def test_LocalPosixReader_as_input_to_File(path):
         f = File(reader)
         assert (
             repr(f)
-            == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
+            == "tests/data/test.pp: <umfive.File: 1 data variable, 9 metadata variables>"
         )
 
 

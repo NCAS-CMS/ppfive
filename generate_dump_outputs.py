@@ -6,7 +6,7 @@ directory = "tests/data"
 
 dataset_suffix = {
     "cl_umfile": "",
-    "test2": ".pp",
+    "test": ".pp",
     "extra_data": ".pp",
     "umfile": ".pp",
     "wgdos_packed": ".pp",

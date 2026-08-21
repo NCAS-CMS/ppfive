@@ -71,9 +71,9 @@ _cache_date2num = {}
 
 
 class File(Mapping):
-    """Read a PP file or UM fields file.
+    """Read a PP file or fields file.
 
-    32-bit and 64-bit PP and UM fields files of any endian-ness can be
+    32-bit and 64-bit PP and fields files of any endian-ness can be
     read.
 
     2-d "slices" within a single file are always combined, where
@@ -82,9 +82,9 @@ class File(Mapping):
     **CF mappings**
 
     The contents of the dataset are mapped to CF dimensions and
-    coordinate variables (both as `DimensionScale` objects); auxiliary
-    coordinate variables and domain ancillary variables (both as
-    `Variable` objects); and data variables (as `DataVariable`
+    coordinate variables (as `DimensionScale` objects); auxiliary
+    coordinate, domain ancillary, bounds and grid mapping variables
+    (as `Variable` objects); and data variables (as `DataVariable`
     objects).
 
     The following CF attributes are derived from the lookup headers
@@ -95,6 +95,7 @@ class File(Mapping):
     CF attribute       CF variable/global usage
     =================  =======================================
     ``_FillValue``     Data
+    ``add_offset``     Data
     ``axis``           Coordinate, Auxiliary coordinate
     ``bounds``         Coordinate, Domain ancillary
     ``calendar``       Coordinate
@@ -108,6 +109,7 @@ class File(Mapping):
                        Domain ancillary
     ``missing_value``  Data
     ``positive``       Coordinate, Auxiliary coordinate
+    ``scale_factor``   Data
     ``source``         Data
     ``standard_name``  Data, Coordinate, Auxiliary coordinate,
                        Domain ancillary
@@ -117,13 +119,13 @@ class File(Mapping):
 
     **Performance**
 
-    The read is lazy in that only the metadata (i.e. the lookup
-    headers and any extra data) are accessed during the initial
-    read. A data array in the file is then accessed on demand, and
-    then only for the part of the data array requested by the
-    indexing. Data reads are parallelised over the 2-d slices stored
-    for each lookup header (see `get_parallelism` and
-    `set_parallelism` methods).
+    The read of the dataset is lazy in that only the metadata
+    (i.e. the lookup headers and any extra data) are accessed during
+    the initial read. A data array in the dataset is then accessed on
+    demand, and then only for the part of the data array requested by
+    the indexing. Data reads are parallelised over the 2-d slices
+    stored for each lookup header (see `set_parallelism` and
+    `get_parallelism`).
 
     **Interoperability**
 
@@ -138,11 +140,12 @@ class File(Mapping):
     :Parameters:
 
         filename:
-            The definition of the PP or UM dataset to be read.  Must
-            either be string-like (such as `str` or `pathlib.Path`) or
-            file-like (such as `io.BufferedReader`, the result of an
-            `fsspec` file system open, or a subclass of
-            `umfive.ByteReader`).
+
+            The definition of the PP or field file dataset to be read.
+            Must either be string-like (such as `str` or
+            `pathlib.Path`) or file-like (such as `io.BufferedReader`,
+            the result of an `fsspec` file system open, or a subclass
+            of `umfive.ByteReader`).
 
         mode: `str`
             The data access mode. Only ``'r'`` (read-only) is allowed.
@@ -169,13 +172,13 @@ class File(Mapping):
         height_at_top_of_model: `float` or `None`, optional
             The height in metres of the upper bound of the top model
             level. If `None` (the default) the height at top model is
-            taken from the top level's upper bound defined by BRSVD1
-            in the lookup headers. If the height can't be determined
-            from the header, or the given height is less than or equal
-            to 0, then a coordinate reference system will still be
-            created that contains the 'a' and 'b' formula term values,
-            but without an atmosphere hybrid height dimension
-            coordinate construct.
+            taken from the top level's upper bound defined by BULEV
+            (word 46) in the lookup headers. If the height can't be
+            determined from the header, or the given height is less
+            than or equal to 0, then a coordinate reference system
+            will still be created that contains the 'a' and 'b'
+            formula term values, but without an atmosphere hybrid
+            height dimension coordinate construct.
 
             .. note:: A current limitation is that if pseudolevels and
                       atmosphere hybrid height coordinates are defined
@@ -577,6 +580,10 @@ class File(Mapping):
         pd = "" if n_data == 1 else "s"
         pm = "" if n_metadata == 1 else "s"
 
+        dataset_name = self.filename
+        if dataset_name != "":
+            dataset_name = f"{dataset_name}: "
+
         return (
             f"{self.filename}: "
             f"<{__package__}.{self.__class__.__name__}: "
@@ -585,14 +592,18 @@ class File(Mapping):
         )
 
     def __str__(self):
+        indent = "    "
+        i1 = indent
+        i2 = i1 + indent
+
         out = [repr(self)]
-        out.append("Data variables:")
+        out.append(f"{i1}Data variables:")
         out.extend(
-            f"    {name}: {var!r}" for name, var in self.data_variables.items()
+            f"{i2}{name}: {var!r}" for name, var in self.data_variables.items()
         )
-        out.append("Metadata variables:")
+        out.append(f"{i1}Metadata variables:")
         out.extend(
-            f"    {name}: {var!r}"
+            f"{i2}{name}: {var!r}"
             for name, var in self.metadata_variables.items()
         )
         return "\n".join(out)
@@ -601,10 +612,19 @@ class File(Mapping):
     def data_variables(self):
         """The data variables.
 
+        .. seealso:: `dimension_variables`, `metadata_variables`,
+                     `variables`
+
         :Returns:
 
             `dict`
                 The data variables, keyed by their names.
+
+        :Examples:
+
+        >>> u.data_variables
+        {'UM_m01s00i001_vn405': <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>,
+         'UM_m01s16i222_vn405': <umfive.DataVariable: UM_m01s16i222_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>}
 
         """
         out = getattr(self, "_data_variables", None)
@@ -616,13 +636,60 @@ class File(Mapping):
         return out
 
     @property
+    def dimension_variables(self):
+        """The data variables.
+
+        .. seealso:: `data_variables`, `metadata_variables`,
+                     `variables`
+
+        :Returns:
+
+            `dict`
+                The data variables, keyed by their names.
+
+        :Examples:
+
+        >>> u.dimension_variables
+        {'time': <umfive.DimensionScale: time, shape=(3,)>,
+         'bounds2': <umfive.DimensionScale: bounds2, size=2>,
+         'air_pressure': <umfive.DimensionScale: air_pressure, shape=(5,)>,
+         'grid_latitude': <umfive.DimensionScale: grid_latitude, shape=(110,)>,
+         'grid_longitude': <umfive.DimensionScale: grid_longitude, shape=(106,)>}
+
+        """
+        out = getattr(self, "_dimension_variables", None)
+        if out is None:
+            out = {
+                name: var
+                for name, var in self.metadata_variables.items()
+                if isinstance(var, DimensionScale)
+            }
+            self._dimension_variables = out
+
+        return out
+
+    @property
     def metadata_variables(self):
         """The metadata variables.
+
+        .. seealso:: `dimension_variables`, `data_variables`,
+                     `variables`
 
         :Returns:
 
             `dict`
                 The metadata variables, keyed by their names.
+
+        :Examples:
+
+        >>> u.metadata_variables
+        {'time': <umfive.DimensionScale: time, shape=(3,)>,
+         'bounds2': <umfive.DimensionScale: bounds2, size=2>,
+         'time_bounds': <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>,
+         'latitude': <umfive.DimensionScale: latitude, shape=(73,)>,
+         'latitude_bounds': <umfive.Variable: latitude_bounds, shape=(73, 2), dimensions=(latitude, bounds2)>,
+         'longitude': <umfive.DimensionScale: longitude, shape=(96,)>,
+         'longitude_bounds': <umfive.Variable: longitude_bounds, shape=(96, 2), dimensions=(longitude, bounds2)>}
 
         """
         out = getattr(self, "_metadata_variables", None)
@@ -641,10 +708,26 @@ class File(Mapping):
     def variables(self):
         """All (data and metadata) variables.
 
+        .. seealso:: `dimension_variables`, `data_variables`,
+                     `metadata_variables`
+
         :Returns:
 
             `dict`
                 The variables, keyed by their names.
+
+        :Examples:
+
+        >>> u.variables
+        {'UM_m01s00i001_vn405': <umfive.DataVariable: UM_m01s00i001_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>,
+         'time': <umfive.DimensionScale: time, shape=(3,)>,
+         'bounds2': <umfive.DimensionScale: bounds2, size=2>,
+         'time_bounds': <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>,
+         'latitude': <umfive.DimensionScale: latitude, shape=(73,)>,
+         'latitude_bounds': <umfive.Variable: latitude_bounds, shape=(73, 2), dimensions=(latitude, bounds2)>,
+         'longitude': <umfive.DimensionScale: longitude, shape=(96,)>,
+         'longitude_bounds': <umfive.Variable: longitude_bounds, shape=(96, 2), dimensions=(longitude, bounds2)>,
+         'UM_m01s16i222_vn405': <umfive.DataVariable: UM_m01s16i222_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>}
 
         """
         return self._all_variables
@@ -801,7 +884,7 @@ class File(Mapping):
     def get_parallelism(self):
         """Get the data variable chunk read parallelism configurations.
 
-        .. seealso:: `set_parallelism`
+        .. seealso:: `set_parallelism`, `DataVariable.get_parallelism`
 
         :Returns:
 
@@ -809,6 +892,11 @@ class File(Mapping):
                 For each data variable, the "thread_count" and
                 "cat_range_allowed" parameters to be used when
                 accessing the data. See `set_parallelism` for details.
+
+        :Examples:
+
+        >>> u.get_parallelism()
+        {'UM_m01s15i201_vn405': {'thread_count': 0, 'cat_range_allowed': False}}
 
         """
         return {
@@ -844,7 +932,7 @@ class File(Mapping):
     def set_parallelism(self, max_thread_count=0, cat_range_allowed=True):
         """Configure data variable chunk read parallelism.
 
-        .. seealso:: `get_parallelism`
+        .. seealso:: `get_parallelism`, `DataVariable.set_parallelism`
 
         :Parameters:
 
