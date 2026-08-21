@@ -75,8 +75,15 @@ class LocalPosixReader(ByteReader):
 
         """
         if self._fd is not None:
-            os.close(self._fd)
-            self._fd = None
+            try:
+                os.close(self._fd)
+            except OSError as e:
+                # A stale descriptor may have already been closed
+                # externally. Treat close as idempotent in this case.
+                if e.errno != errno.EBADF:
+                    raise
+            finally:
+                self._fd = None
 
     @staticmethod
     def drop_os_cache_best_effort():

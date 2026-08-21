@@ -63,3 +63,14 @@ def test_LocalPosixReader_as_input_to_File(path):
             repr(f)
             == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
         )
+
+
+def test_File_close_tolerates_stale_local_reader_fd():
+    f = File("tests/data/test2.pp")
+
+    # Simulate external invalidation while File still owns the reader.
+    stale_fd = f._reader._fd
+    os.close(stale_fd)
+
+    # This should be idempotent and not raise EBADF.
+    f.close()
