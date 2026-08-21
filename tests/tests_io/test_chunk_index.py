@@ -6,7 +6,7 @@ from umfive import File
 
 
 def test_variable_id_exposes_pyfive_like_chunk_index_for_unpacked_file():
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with File(str(path)) as f:
         name = next(name for name in f.data_variables)
@@ -31,7 +31,7 @@ def test_variable_id_exposes_pyfive_like_chunk_index_for_unpacked_file():
 
 
 def test_unpacked_chunk_index_can_back_a_kerchunk_like_reconstruction():
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with File(str(path)) as f:
         name = next(name for name in f.data_variables)

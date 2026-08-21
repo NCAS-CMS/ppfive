@@ -592,14 +592,18 @@ class File(Mapping):
         )
 
     def __str__(self):
+        indent = "    "
+        i1 = indent
+        i2 = i1 + indent
+        
         out = [repr(self)]
-        out.append("Data variables:")
+        out.append(f"{i1}Data variables:")
         out.extend(
-            f"    {name}: {var!r}" for name, var in self.data_variables.items()
+            f"{i2}{name}: {var!r}" for name, var in self.data_variables.items()
         )
-        out.append("Metadata variables:")
+        out.append(f"{i1}Metadata variables:")
         out.extend(
-            f"    {name}: {var!r}"
+            f"{i2}{name}: {var!r}"
             for name, var in self.metadata_variables.items()
         )
         return "\n".join(out)

@@ -20,7 +20,7 @@ Usage: umdump [<name of a PP or fields file dataset>]"""
                 import xnetcdf
             except Exception as error:
                 print(
-                    f"Error: umdump requires the python module 'xnetcdf' "
+                    f"Error: umdump requires the Python module 'xnetcdf' "
                     f"to be installed ({error})"
                 )
                 return 2

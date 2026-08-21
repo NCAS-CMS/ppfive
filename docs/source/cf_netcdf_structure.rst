@@ -11,8 +11,9 @@ dimensions and coordinate variables (`umfive.DimensionScale` objects),
 and auxiliary coordinate, domain ancillary, bounds, and grid mapping
 variables (`umfive.Variable` objects).
 
-The examples in this section use the `test2.pp` dataset (download TODO
-KB).
+The examples in this section use the `test.pp` dataset (`download 704
+kB
+<https://raw.githubusercontent.com/NCAS-CMS/umfive/main/tests/data/test.pp>`_).
 
 .. _CF-attributes:
 
@@ -112,10 +113,10 @@ dataset definitions:
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> u.filename
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> um.filename
    'test.pp'
 
 Dataset indexing
@@ -130,26 +131,26 @@ The name can be provided with or without a leading ``/`` character.
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> print(u)
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   Data variables:
-       UM_m01s15i201_vn405: <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
-   Metadata variables:
-       time: <umfive.DimensionScale: time, shape=(3,)>
-       bounds2: <umfive.DimensionScale: bounds2, size=2>
-       time_bounds: <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>
-       air_pressure: <umfive.DimensionScale: air_pressure, shape=(5,)>
-       grid_latitude: <umfive.DimensionScale: grid_latitude, shape=(110,)>
-       grid_latitude_bounds: <umfive.Variable: grid_latitude_bounds, shape=(110, 2), dimensions=(grid_latitude, bounds2)>
-       grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
-       grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
-       rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
-   >>> u['UM_m01s15i201_vn405']
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> print(um)
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+       Data variables:
+           UM_m01s15i201_vn405: <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
+       Metadata variables:
+           time: <umfive.DimensionScale: time, shape=(3,)>
+           bounds2: <umfive.DimensionScale: bounds2, size=2>
+           time_bounds: <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>
+           air_pressure: <umfive.DimensionScale: air_pressure, shape=(5,)>
+           grid_latitude: <umfive.DimensionScale: grid_latitude, shape=(110,)>
+           grid_latitude_bounds: <umfive.Variable: grid_latitude_bounds, shape=(110, 2), dimensions=(grid_latitude, bounds2)>
+           grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
+           grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
+           rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
+   >>> um['UM_m01s15i201_vn405']
    <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
-   >>> u['/UM_m01s15i201_vn405']
+   >>> um['/UM_m01s15i201_vn405']
    <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
-   >>> u['time']
+   >>> um['time']
    <umfive.DimensionScale: time, shape=(3,)>
 
 Dataset attributes
@@ -162,10 +163,10 @@ The attributes of a `umfive.File` instance are accessed with the
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> u.attrs  # Get the attributes
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> um.attrs  # Get the attributes
    {'Conventions': 'CF-1.13'}
 
 Dataset variables
@@ -180,12 +181,12 @@ attributes.
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> u.data_variables  # Data variables
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> um.data_variables  # Data variables
    {'UM_m01s15i201_vn405': <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>}
-   >>> u.metadata_variables  # Metadata variables
+   >>> um.metadata_variables  # Metadata variables
    {'time': <umfive.DimensionScale: time, shape=(3,)>,
     'bounds2': <umfive.DimensionScale: bounds2, size=2>,
     'time_bounds': <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>,
@@ -195,7 +196,7 @@ attributes.
     'grid_longitude': <umfive.DimensionScale: grid_longitude, shape=(106,)>,
     'grid_longitude_bounds': <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>,
     'rotated_latitude_longitude': <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>}
-   >>> u.variables  # Data and metadata variables
+   >>> um.variables  # Data and metadata variables
    {'UM_m01s15i201_vn405': <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>,
     'time': <umfive.DimensionScale: time, shape=(3,)>,
     'bounds2': <umfive.DimensionScale: bounds2, size=2>,
@@ -218,10 +219,10 @@ Dimensions are defined by the subset of metadata variables that are
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> u.dimension_variables  # Dimension variables
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> um.dimension_variables  # Dimension variables
    {'time': <umfive.DimensionScale: time, shape=(3,)>,
     'bounds2': <umfive.DimensionScale: bounds2, size=2>,
     'air_pressure': <umfive.DimensionScale: air_pressure, shape=(5,)>,
@@ -234,11 +235,11 @@ a coordinate data array for the dimension.
 .. code-block:: python
    :caption: Example
 
-   >>> u['bounds2'].has_coordinates
+   >>> um['bounds2'].has_coordinates
    False
-   >>> u['time'].has_coordinates
+   >>> um['time'].has_coordinates
    True
-   >>> u['time'][...]
+   >>> um['time'][...]
    array([120.5, 121.5, 122.5])
 
 Data and metadata variables
@@ -254,12 +255,12 @@ The name of a data or metdata variable instance is accessed with the
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> u['UM_m01s15i201_vn405'].name
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> um['UM_m01s15i201_vn405'].name
    'UM_m01s15i201_vn405'
-   >>> u['time'].name
+   >>> um['time'].name
    'time'
    
 .. _Variable-data-and-indexing:
@@ -276,22 +277,22 @@ The requested subspace is always returned as a `numpy` array.
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> z = u['air_pressure']  # Select a matadata variable
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> z = um['air_pressure']  # Select a matadata variable
    >>> z.shape
    (5,)
    >>> z[...]
    array([850.00006 , 700.00006 , 500.00003 , 250.00002 ,  50.000004],
          dtype=float32)
-   >>>: x = u['grid_longitude']
+   >>> x = um['grid_longitude']
    >>> x.shape
    (106,)
    >>> x[10:18]
    array([-16.14001101, -15.70001101, -15.26001102, -14.82001102,
           -14.38001102, -13.94001102, -13.50001103, -13.06001103])
-   >>> v = ['UM_m01s15i201_vn405']  # Select a data variable
+   >>> v = um['UM_m01s15i201_vn405']  # Select a data variable
    >>> v.shape
    (3, 5, 110, 106)
    >>> v[:, ::-2, 0, [1, 3, 4]]
@@ -319,10 +320,10 @@ The attributes of a data or metdata variable are accessed by the
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> z = u['air_pressure']  # Select a metadata variable
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> z = um['air_pressure']  # Select a metadata variable
    >>> z.attrs  # Get the attributes
    {'CLASS': b'DIMENSION_SCALE',
     'NAME': b'netCDF dimension coordinate variable',
@@ -331,7 +332,7 @@ The attributes of a data or metdata variable are accessed by the
     'positive': 'down',
     'standard_name': 'air_pressure',
     'units': 'hPa'}
-   >>> v = u['UM_m01s15i201_vn405']  # Select a data variable
+   >>> v = um['UM_m01s15i201_vn405']  # Select a data variable
    >>> v.attrs
    {'DIMENSION_LIST': (('time',),
                        ('air_pressure',),
@@ -372,12 +373,12 @@ The dimensions of a data or metadata instance are accessed with the
    :caption: Example
 
    >>> import umfive
-   >>> u = umfive.File('test2.pp')  # Open the dataset
-   >>> u
-   test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> z = u['air_pressure']
+   >>> um = umfive.File('test.pp')  # Open the dataset
+   >>> um
+   test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+   >>> z = um['air_pressure']
    >>> z.dimensions
    ('air_pressure',)
-   >>> v = u['UM_m01s15i201_vn405']
+   >>> v = um['UM_m01s15i201_vn405']
    >>> v.dimensions
    ('time', 'air_pressure', 'grid_latitude', 'grid_longitude')

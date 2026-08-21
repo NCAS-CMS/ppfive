@@ -10,7 +10,7 @@ import umfive
     "dataset, suffix",
     [
         ("cl_umfile", ""),
-        ("test2", ".pp"),
+        ("test", ".pp"),
         ("extra_data", ".pp"),
         ("umfile", ".pp"),
         ("wgdos_packed", ".pp"),
@@ -33,17 +33,17 @@ def test_file(dataset, suffix):
 
 def test_File_with_builtin_open_as_input():
     """Test umfive.File with open file handle 'filename' argument."""
-    with open("tests/data/test2.pp", "rb") as fh:
+    with open("tests/data/test.pp", "rb") as fh:
         f = umfive.File(fh)
         assert (
             repr(f)
-            == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
+            == "tests/data/test.pp: <umfive.File: 1 data variable, 9 metadata variables>"
         )
 
 
 def test_File_with_bytesio_as_input():
     """Test umfive.File with BytesIO 'filename' argument."""
-    path = Path("tests/data/test2.pp")
+    path = Path("tests/data/test.pp")
     raw = BytesIO(path.read_bytes())
     f = umfive.File(raw)
     assert (

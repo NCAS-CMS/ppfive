@@ -1,4 +1,4 @@
-tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
+tests/data/test.pp: <umfive.File: 1 data variable, 9 metadata variables>
     Attributes:
         Conventions: 'CF-1.13'
     Data variables:

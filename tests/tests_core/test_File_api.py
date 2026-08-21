@@ -213,30 +213,30 @@ def test_File_get_set_parallelsm():
 
 
 def test_File__repr__():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert (
         repr(f)
-        == "tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>"
+        == "tests/data/test.pp: <umfive.File: 1 data variable, 9 metadata variables>"
     )
 
 
 def test_File__str__():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert (
         str(f)
-        == """tests/data/test2.pp: <umfive.File: 1 data variable, 9 metadata variables>
-Data variables:
-    UM_m01s15i201_vn405: <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
-Metadata variables:
-    time: <umfive.DimensionScale: time, shape=(3,)>
-    bounds2: <umfive.DimensionScale: bounds2, size=2>
-    time_bounds: <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>
-    air_pressure: <umfive.DimensionScale: air_pressure, shape=(5,)>
-    grid_latitude: <umfive.DimensionScale: grid_latitude, shape=(110,)>
-    grid_latitude_bounds: <umfive.Variable: grid_latitude_bounds, shape=(110, 2), dimensions=(grid_latitude, bounds2)>
-    grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
-    grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
-    rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>"""
+        == """tests/data/test.pp: <umfive.File: 1 data variable, 9 metadata variables>
+    Data variables:
+        UM_m01s15i201_vn405: <umfive.DataVariable: UM_m01s15i201_vn405, shape=(3, 5, 110, 106), dimensions=(time, air_pressure, grid_latitude, grid_longitude)>
+    Metadata variables:
+        time: <umfive.DimensionScale: time, shape=(3,)>
+        bounds2: <umfive.DimensionScale: bounds2, size=2>
+        time_bounds: <umfive.Variable: time_bounds, shape=(3, 2), dimensions=(time, bounds2)>
+        air_pressure: <umfive.DimensionScale: air_pressure, shape=(5,)>
+        grid_latitude: <umfive.DimensionScale: grid_latitude, shape=(110,)>
+        grid_latitude_bounds: <umfive.Variable: grid_latitude_bounds, shape=(110, 2), dimensions=(grid_latitude, bounds2)>
+        grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
+        grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
+        rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>"""
     )
 
 
@@ -247,7 +247,7 @@ def test_File_consolidated_metadata():
     f = umfive.File("tests/data/wgdos_packed.pp")
     assert f.consolidated_metadata
 
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert not f.consolidated_metadata
 
     f = umfive.File("tests/data/extra_data.pp")
@@ -258,7 +258,7 @@ def test_File_has_extra_data():
     f = umfive.File("tests/data/extra_data.pp")
     assert f.has_extra_data
 
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert not f.has_extra_data
 
 
@@ -297,7 +297,7 @@ def test_File__init__attribues():
 
 
 def test_File__getitem__():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     name = tuple(f.data_variables)[0]
     var = f[name]
     assert f[name] is var
@@ -313,7 +313,7 @@ def test_File__getitem__():
 
 def test_File_record_info():
     r = {}
-    umfive.File("tests/data/test2.pp", record_info=r)
+    umfive.File("tests/data/test.pp", record_info=r)
     assert len(r) == 1
     assert list(r) == ["UM_m01s15i201_vn405"]
     assert len(r["UM_m01s15i201_vn405"]) == 15
@@ -321,12 +321,12 @@ def test_File_record_info():
 
 
 def test_File__len__():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert len(f) == len(f.variables)
 
 
 def test_File_data_variables():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert isinstance(f.data_variables, dict)
     assert len(f.data_variables) == len(f._data_variable_names)
     for name, var in f.data_variables.items():
@@ -334,7 +334,7 @@ def test_File_data_variables():
 
 
 def test_File_metadata_variables():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert isinstance(f.metadata_variables, dict)
     assert len(f.metadata_variables) == len(f) - len(f.data_variables)
     for name, var in f.metadata_variables.items():
@@ -342,7 +342,7 @@ def test_File_metadata_variables():
 
 
 def test_File_variables():
-    f = umfive.File("tests/data/test2.pp")
+    f = umfive.File("tests/data/test.pp")
     assert isinstance(f.variables, dict)
     assert len(f.variables) == len(f.data_variables) + len(
         f.metadata_variables

@@ -12,6 +12,7 @@
    quickstart
    cf_netcdf_structure
    xnetcdf
+   umdump
    api_reference
    changelog
    contributing

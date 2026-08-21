@@ -11,7 +11,7 @@ def _first_data_variable_name(f: umfive.File) -> str:
 
 
 def test_local_parallel_matches_serial():
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with umfive.File(str(path)) as f_serial:
         name = _first_data_variable_name(f_serial)
@@ -26,7 +26,7 @@ def test_local_parallel_matches_serial():
 
 
 def test_fsspec_bulk_range_matches_serial_for_unpacked_data():
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with umfive.File(str(path)) as f_serial:
         f_serial.set_parallelism(max_thread_count=0, cat_range_allowed=False)
@@ -59,7 +59,7 @@ def test_fsspec_bulk_range_matches_serial_for_wgdos_packed_data():
 
 
 def test_local_parallel_slice_matches_serial():
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with umfive.File(str(path)) as f_serial:
         name = _first_data_variable_name(f_serial)
@@ -74,7 +74,7 @@ def test_local_parallel_slice_matches_serial():
 
 
 def test_fsspec_bulk_range_slice_matches_serial_for_unpacked_data():
-    path = Path(__file__).resolve().parents[1] / "data" / "test2.pp"
+    path = Path(__file__).resolve().parents[1] / "data" / "test.pp"
 
     with umfive.File(str(path)) as f_serial:
         name = _first_data_variable_name(f_serial)

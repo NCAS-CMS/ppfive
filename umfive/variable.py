@@ -731,7 +731,7 @@ class DimensionScale(_Mixin):
 
     @property
     def has_coordinates(self):
-        """Whether that dimension has a coordinate data array.
+        """Whether the dimension has a coordinate data array.
 
         :Returns:
 
