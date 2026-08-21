@@ -49,8 +49,8 @@ single logical change:
 	  
     $ git commit -a -m "<COMMIT MESSAGE>"
 
-Create a new changelog entry in ``Changelog.rst``. The entry should be
-written as:
+Create a new change log entry in ``Changelog.rst``. The entry should
+be written as:
 
 .. code-block:: rst
 

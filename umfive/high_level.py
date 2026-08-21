@@ -595,7 +595,7 @@ class File(Mapping):
         indent = "    "
         i1 = indent
         i2 = i1 + indent
-        
+
         out = [repr(self)]
         out.append(f"{i1}Data variables:")
         out.extend(
@@ -611,10 +611,10 @@ class File(Mapping):
     @property
     def data_variables(self):
         """The data variables.
-        
+
         .. seealso:: `dimension_variables`, `metadata_variables`,
                      `variables`
-        
+
         :Returns:
 
             `dict`
@@ -627,7 +627,7 @@ class File(Mapping):
          'UM_m01s16i222_vn405': <umfive.DataVariable: UM_m01s16i222_vn405, shape=(3, 73, 96), dimensions=(time, latitude, longitude)>}
 
         """
-        out = getattr(self, "_data_variables", None) ###
+        out = getattr(self, "_data_variables", None)
         if out is None:
             variables = self.variables
             out = {name: variables[name] for name in self._data_variable_names}
@@ -641,7 +641,7 @@ class File(Mapping):
 
         .. seealso:: `data_variables`, `metadata_variables`,
                      `variables`
-        
+
         :Returns:
 
             `dict`
@@ -659,9 +659,11 @@ class File(Mapping):
         """
         out = getattr(self, "_dimension_variables", None)
         if out is None:
-            metadata_variables = self.metadata_variables
-            out = {name: var for name, var in self.metadata_variables.items()
-                   if isinstance(var, DimensionScale)}
+            out = {
+                name: var
+                for name, var in self.metadata_variables.items()
+                if isinstance(var, DimensionScale)
+            }
             self._dimension_variables = out
 
         return out
@@ -672,12 +674,12 @@ class File(Mapping):
 
         .. seealso:: `dimension_variables`, `data_variables`,
                      `variables`
-        
+
         :Returns:
 
             `dict`
                 The metadata variables, keyed by their names.
-        
+
         :Examples:
 
         >>> u.metadata_variables
@@ -708,7 +710,7 @@ class File(Mapping):
 
         .. seealso:: `dimension_variables`, `data_variables`,
                      `metadata_variables`
-        
+
         :Returns:
 
             `dict`

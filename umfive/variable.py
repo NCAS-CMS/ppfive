@@ -417,7 +417,7 @@ class _Mixin:
         """Maximum shape of the data.
 
         Always the same as the `shape`.
-        
+
         :Returns:
 
             `tuple`
@@ -626,7 +626,7 @@ class DimensionScale(_Mixin):
             The dimension coordinate attributes, which override any
             with the same name set via *axiscode*.
 
-        file_obj: `File` or `None, optional
+        file_obj: `File` or `None`, optional
             The parent dataset.
 
         Netcdf4Dimid: `list` or `None`, optional
@@ -728,7 +728,6 @@ class DimensionScale(_Mixin):
         """
         return (self.name,)
 
-
     @property
     def has_coordinates(self):
         """Whether the dimension has a coordinate data array.
@@ -736,7 +735,7 @@ class DimensionScale(_Mixin):
         :Returns:
 
             `bool`
-        
+
         """
         return self._data is not None
 
@@ -1009,13 +1008,14 @@ class DataVariable(_Mixin):
     @property
     def compression_modes(self):
         """The unique data chunk compression flags.
-
+        
         These are the unique values, excluding ``0``, of the N2 digit
         of LBPACK across all data chunks in the variable.
 
-        1: Data compressed using the N3rd group of compressed ﬁeld
-           index arrays in the dump.
-        2: Data compressed with the N3rd bit mask
+        * ``1``: Data compressed using the N3rd group of compressed
+                 ﬁeld index arrays in the dump.
+
+        * ``2``: Data compressed with the N3rd bit mask.
 
         """
         out = {
@@ -1088,7 +1088,7 @@ class DataVariable(_Mixin):
 
             `list`
                 The unique LBPACK values.
-        
+
         :Examples:
 
         >>> d.lbpack
@@ -1115,7 +1115,7 @@ class DataVariable(_Mixin):
 
             `list`
                 The unique data chunk packing flags, excluding ``0``.
-        
+
         :Examples:
 
         >>> d.packing_modes

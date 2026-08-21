@@ -103,7 +103,7 @@ dataset definitions:
   `pathlib.Path` instance).
   
 - A file-like object that accesses a local or remote dataset (such as
-  `io.BufferedReader` or the result of an `fsspec` file system open)
+  `io.BufferedReader` or the result of an `fsspec` file system open).
   
 - A subclass of `umfive.ByteReader` that accesses a local or remote
   dataset (such as `umfive.LocalPosixReader` or
@@ -248,7 +248,7 @@ Data and metadata variables
 Variable name
 ^^^^^^^^^^^^^
 
-The name of a data or metdata variable instance is accessed with the
+The name of a data or metadata variable instance is accessed with the
 `!name` attribute.
 
 .. code-block:: python
@@ -280,7 +280,7 @@ The requested subspace is always returned as a `numpy` array.
    >>> um = umfive.File('test.pp')  # Open the dataset
    >>> um
    test.pp: <umfive.File: 1 data variable, 9 metadata variables>
-   >>> z = um['air_pressure']  # Select a matadata variable
+   >>> z = um['air_pressure']  # Select a metadata variable
    >>> z.shape
    (5,)
    >>> z[...]
@@ -313,7 +313,7 @@ The requested subspace is always returned as a `numpy` array.
 Variable attributes
 ^^^^^^^^^^^^^^^^^^^
 
-The attributes of a data or metdata variable are accessed by the
+The attributes of a data or metadata variable are accessed by the
 `!attrs` attribute.
 
 .. code-block:: python

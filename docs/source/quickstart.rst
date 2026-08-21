@@ -90,7 +90,7 @@ spanned by their data arrays.
 	
 .. rubric:: Display the `~umfive.File.dump` description of the dataset
 
-In addition to the `str` description, this shows the attroibute of
+In addition to the `str` description, this shows the attribute of
 each data and metadata variable. IF the `data=True` keyword is used, then each variable's data array also displayed.
 
 .. code-block:: python

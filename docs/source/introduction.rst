@@ -92,7 +92,7 @@ dataset definitions:
   `pathlib.Path` instance).
   
 - A file-like object that accesses a local or remote dataset (such as
-  `io.BufferedReader` or the result of an `fsspec` file system open)
+  `io.BufferedReader` or the result of an `fsspec` file system open).
   
 - A `umfive.LocalPosixReader` or `umfive.FileObjReader` object (or any
   subclass of `umfive.ByteReader`) that accesses a local or remote
