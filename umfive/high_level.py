@@ -110,12 +110,19 @@ class File(Mapping):
     :Parameters:
 
         filename:
+            The definition of the PP or fields file dataset to be
+            read. One of:
 
-            The definition of the PP or field file dataset to be read.
-            Must either be string-like (such as `str` or
-            `pathlib.Path`) or file-like (such as `io.BufferedReader`,
-            the result of an `fsspec` file system open, or a subclass
-            of `umfive.ByteReader`).
+            * A string-like path name of a local dataset (such as a
+              `str` or `pathlib.Path` instance).
+              
+            * A file-like object that accesses a local or remote
+              dataset (such as a `io.BufferedReader` instance, or the
+              result of an `fsspec` file system open).
+              
+            * A subclass of `umfive.ByteReader` that accesses a local
+              or remote dataset (such as `umfive.LocalPosixReader` or
+              `umfive.FileObjReader`).
 
         mode: `str`
             The data access mode. Only ``'r'`` (read-only) is allowed.
