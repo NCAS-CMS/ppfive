@@ -104,7 +104,7 @@ def _between_var_key(rec):
 def _within_var_key(rec):
     """Key to discern records within a group.
 
-    THe group is defined by `_between_var_key`.
+    The group is defined by `_between_var_key`.
 
     :Parameters:
 
@@ -238,7 +238,7 @@ def _split_on_duplicate_tz_pairs_and_extra_data(recs):
 
     Split a grouped variable when (t,z) coordinate pairs are duplicated.
 
-    This mirrors the key behavior of the legacy disambiguation index in
+    This mirrors the key behaviour of the legacy disambiguation index in
     process_vars.c for non-regular z/t record layouts.
 
     Also split when extra data differs, after splitting duplicate

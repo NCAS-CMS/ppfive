@@ -10,16 +10,16 @@ representing datasets with a common netCDF view.
 
 `xnetcdf` can convert an existing `umfive.File` instance, or if passed
 the dataset name it will itself use `umfive` internally to open the
-dataset.
+dataset. In both cases, the access to the data arrays is lazy.
 
 The examples in this section use the `test.pp` dataset (`download 704
 kB
 <https://raw.githubusercontent.com/NCAS-CMS/umfive/main/tests/data/test.pp>`_).
 
 .. code-block:: python
-   :caption: Example   
+   :caption: Create a `umfive.File` instance.
 
-   >>> import umfive, xnetcdf
+   >>> import umfive
    >>> um = umfive.File('test.pp')  # Open the dataset with umfive
    >>> print(um)
    test.pp: <umfive.File: 1 data variable, 9 metadata variables>
@@ -35,7 +35,15 @@ kB
            grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
            grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
            rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
+	   
+.. code-block:: python
+   :caption: Convert the `umfive.File` instance to a `xnetcdf.Dataset`
+             instance.
+
+   >>> import xnetcdf
    >>> x = xnetcdf.Dataset(um)  # Pass the umfive.File instance to xnetcdf
+   >>> x
+   test.pp: <xnetcdf.Dataset: /, 5 dimensions, 9 variables, 0 groups>
    >>> print(x)
    test.pp: <xnetcdf.Dataset: /, 5 dimensions, 9 variables, 0 groups>
         Dimensions:
@@ -54,9 +62,11 @@ kB
             grid_longitude: <xnetcdf.Variable: /grid_longitude, shape=(106,), dimensions=(/grid_longitude,)>
             grid_longitude_bounds: <xnetcdf.Variable: /grid_longitude_bounds, shape=(106, 2), dimensions=(/grid_longitude, /bounds2)>
             rotated_latitude_longitude: <xnetcdf.Variable: /rotated_latitude_longitude, shape=(), dimensions=()>
+	    
+.. code-block:: python
+   :caption: Create a `xnetcdf.Dataset` instance from directly from the file.
+
    >>> x = xnetcdf.Dataset('test.pp')  # Pass the dataset name to xnetcdf
-   >>> x
-   test.pp: <xnetcdf.Dataset: /, 5 dimensions, 9 variables, 0 groups>
    >>> x.ncdump()
    netcdf test.pp {
    dimensions:

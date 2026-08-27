@@ -87,36 +87,6 @@ class File(Mapping):
     (as `Variable` objects); and data variables (as `DataVariable`
     objects).
 
-    The following CF attributes are derived from the lookup headers
-    and, where possible and appropriate, are added to the output
-    variables or as global attributes:
-
-    =================  =======================================
-    CF attribute       CF variable/global usage
-    =================  =======================================
-    ``_FillValue``     Data
-    ``add_offset``     Data
-    ``axis``           Coordinate, Auxiliary coordinate
-    ``bounds``         Coordinate, Domain ancillary
-    ``calendar``       Coordinate
-    ``climatology``    Coordinate
-    ``Conventions``    Global
-    ``coordinates``    Data
-    ``cell_methods``   Data
-    ``formula_terms``  Coordinate
-    ``grid_mapping``   Data
-    ``long_name``      Data, Coordinate, Auxiliary coordinate,
-                       Domain ancillary
-    ``missing_value``  Data
-    ``positive``       Coordinate, Auxiliary coordinate
-    ``scale_factor``   Data
-    ``source``         Data
-    ``standard_name``  Data, Coordinate, Auxiliary coordinate,
-                       Domain ancillary
-    ``units``          Data, Coordinate, Auxiliary coordinate,
-                       Domain ancillary
-    =================  =======================================
-
     **Performance**
 
     The read of the dataset is lazy in that only the metadata
@@ -153,19 +123,19 @@ class File(Mapping):
         um_version: `str` or `None`, optional
             The UM version to be used when decoding the header. Valid
             versions are, for example, ``'4.2'``, ``'6.6.3'`` and
-            ``'8.2'``. If the UM version can be derived fron LBSRCE in
+            ``'8.2'``. If the UM version can be derived from LBSRCE in
             the lookup headers (which is usually the case for files
             created by the UM at versions 5.3 and later) then
             *um_version* parameter is ignored.
 
-            If the UM version can't be derived fron the lookup headers
+            If the UM version can't be derived from the lookup headers
             (which is usually the case for files created by the UM at
-            versions ealier than 5.3) then the given UM version is
+            versions earlier than 5.3) then the given UM version is
             used, and if *um_version* is `None` the UM version 4.5 is
             assumed.
 
             When the UM version has a third element (such as the 3 in
-            6.6.3), this is a special case for which the UM veriosn
+            6.6.3), this is a special case for which the UM version
             must be provided with the *um_version* parameter, and any
             UM version encoded in the lookup header is ignored.
 
@@ -222,7 +192,7 @@ class File(Mapping):
 
         _data_variable_index: `list` or `None`, optional
             The dictionary representations of the data variables. By
-            default this is derived internally from *fileaname*, so
+            default this is derived internally from *filename*, so
             when *_data_variable_index* is provided, *filename* must
             be `None`. See the `__init__` code for details.
 
@@ -404,7 +374,7 @@ class File(Mapping):
 
         # Create the cache of metadata `Variable` and `DimensionScale`
         # instance names for the entire dataset. The dictionary keys
-        # must be tuples, have akey description as their first
+        # must be tuples, have a description as their first
         # element, and are typically derived from lookup header
         # values.
         #
@@ -855,7 +825,7 @@ class File(Mapping):
     def userblock_size(self):
         """Size of the user block in bytes (currently always 0).
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         :Returns:
 
@@ -909,7 +879,7 @@ class File(Mapping):
 
         Simply returns the data variable object.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for comparability with the `pyfive` API.
 
         :Parameters:
 
@@ -940,10 +910,10 @@ class File(Mapping):
                 The number of concurrent worker threads to use for
                 reading the data chunks of each variable. If ``0``
                 (the default) then the reading of data chunks runs
-                sequentially in the main thread. For each varable, the
-                number of threads actually used will never be greater
-                than the number of data chunks, regardless of the
-                value of *max_thread_count*.
+                sequentially in the main thread. For each variable,
+                the number of threads actually used will never be
+                greater than the number of data chunks, regardless of
+                the value of *max_thread_count*.
 
             cat_range_allowed: `bool`, optional
                 If True (the default), uses fsspec's bulk range
@@ -967,8 +937,9 @@ class DataVariableMetadata:
 
     Only metadata variables that do not already exist will be created.
 
-    The returned instance's `name`, `attrs`, and `DIMENSION_LIST`
-    attributes may be used to create a `DataVariable` instance.
+    The returned instance's ``name``, ``attrs``, and
+    ``DIMENSION_LIST`` attributes may be used to create a
+    `DataVariable` instance.
 
     **Initialisation**
 
@@ -991,7 +962,7 @@ class DataVariableMetadata:
 
         Netcdf4Dimid: `list`
             A single-element list containing the next available
-            "_NetCDF4Dimid" attribute value for `DimensionScale`
+            ``_NetCDF4Dimid`` attribute value for `DimensionScale`
             instances.
 
     """
@@ -1210,9 +1181,9 @@ class DataVariableMetadata:
             t_recs = chunk_records[::nz]
             z_recs = chunk_records[:nz]
 
-            # The 'Z' headers might be in the wrong order (i.e. not in the
-            # order that we want the coordinate arrays to be), so let's
-            # get them in correct order.
+            # The 'Z' headers might be in the wrong order (i.e. not in
+            # the order that we want the coordinate arrays to be), so
+            # let's get them in correct order.
             z_recs = sorted(z_recs, key=lambda x: x.chunk_coords)
         else:
             z_recs = []
@@ -1250,10 +1221,10 @@ class DataVariableMetadata:
 
         cf_properties["um_version"] = um
 
-        # Set data variable attribtues
+        # Set data variable attributes
         self.attrs.update(cf_properties)
 
-        # Store the definition of the data varible's Y-X grid
+        # Store the definition of the data variable's Y-X grid
         self._yx_grid_key = (
             "yx_grid",
             LBROW,
@@ -1445,11 +1416,11 @@ class DataVariableMetadata:
     def add_to_variables(self, name, default="variable"):
         """Add a variable to the `variables` dictionary.
 
-        The key is defined by *name*, and may have a suffx added to it
-        to ensure uniqueness.
+        The key is defined by *name*, and may have a suffix added to
+        it to ensure uniqueness.
 
-        If *name* is a string, then a plae-holder is added to the
-        `variables` dictionry, with a value of `None`. This
+        If *name* is a string, then a place-holder is added to the
+        `variables` dictionary, with a value of `None`. This
         expectation is that `None` will get replaced later with a
         variable instance.
 
@@ -1651,7 +1622,7 @@ class DataVariableMetadata:
                 name="atmosphere_hybrid_height_coordinate_a",
                 data=array_a,
                 attrs={
-                    "long_name": "height based hybrid coeffient a",
+                    "long_name": "height based hybrid coefficient a",
                     "units": "m",
                     "bounds": None,
                 },
@@ -1675,7 +1646,7 @@ class DataVariableMetadata:
                 name="atmosphere_hybrid_height_coordinate_b",
                 data=array_b,
                 attrs={
-                    "long_name": "height based hybrid coeffient b",
+                    "long_name": "height based hybrid coefficient b",
                     "units": "1",
                     "bounds": None,
                 },
@@ -1693,7 +1664,7 @@ class DataVariableMetadata:
             self.add_to_variables(da_b_bounds)
             da_b.attrs["bounds"] = da_b_bounds.name
 
-            # Set the 'forumla terms' attributes on the parent
+            # Set the 'formula terms' attributes on the parent
             # coordinate and coordinate bounds variables
             self.formula_terms(dc, f"a: {da_a.name} b: {da_b.name}")
             self.formula_terms(
@@ -1839,7 +1810,7 @@ class DataVariableMetadata:
 
             da_b.attrs["bounds"] = da_b_bounds.name
 
-            # Set the 'forumla terms' attributes on the parent
+            # Set the 'formula terms' attributes on the parent
             # coordinate and coordinate bounds variables
             self.formula_terms(dc, f"a: {da_a.name} b: {da_b.name}")
             self.formula_terms(
@@ -1887,7 +1858,7 @@ class DataVariableMetadata:
 
         :Parameters:
 
-            bounds: `nump.ndarray`
+            bounds: `numpy.ndarray`
                 The bounds array.
 
         :Returns:
@@ -2077,7 +2048,7 @@ class DataVariableMetadata:
 
     @classmethod
     def formula_terms(cls, var, formula_terms):
-        """Add to the formula_terms attribute to a varable.
+        """Add to the ``formula_terms`` attribute to a variable.
 
         :Parameters:
 
@@ -2086,7 +2057,7 @@ class DataVariableMetadata:
 
             formula_terms: `str`
                 The formula terms to set as the variable's
-                "formula_terms" attribute.
+                ``formula_terms`` attribute.
 
         :Returns:
 
@@ -2154,7 +2125,7 @@ class DataVariableMetadata:
         :Parameters:
 
             aux: `bool`
-                If True then create an auxiliary coordinate variabel,
+                If True then create an auxiliary coordinate variable,
                 otherwise create a dimension coordinate variable.
 
         :Returns:
@@ -2271,7 +2242,7 @@ class DataVariableMetadata:
         return dim_ncvar
 
     def radiation_wavelength_coordinate(self, rwl, rwl_units):
-        """Creata and return the radiation wavelength coordinate.
+        """Create and return the radiation wavelength coordinate.
 
         :Returns:
 
@@ -2768,7 +2739,7 @@ class DataVariableMetadata:
             file_obj=self._file_obj,
             Netcdf4Dimid=self._Netcdf4Dimid,
         )
-        dim_ncvar = self.add_to_variablesd(dc)
+        dim_ncvar = self.add_to_variables(dc)
 
         self._axis[axis] = dim_ncvar
         self._time_axis = dim_ncvar
@@ -3091,7 +3062,7 @@ class DataVariableMetadata:
                 )
                 bounds_ncvar = self.add_to_variables(b)
 
-                # Set the 'bounds' attribute on the parent corodiante
+                # Set the 'bounds' attribute on the parent coordinate
                 # variable
                 dc.setattr("bounds", bounds_ncvar)
 
