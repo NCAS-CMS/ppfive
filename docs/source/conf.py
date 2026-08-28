@@ -6,16 +6,20 @@
 import os
 import sys
 
+from datetime import datetime
+
+import umfive
+
 sys.path.insert(0, os.path.abspath("../../src"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "umfive"
-copyright = "2026, umfive Development Team"
-author = "umfive Development Team"
-version = "0.3.0"
-release = "0.3.0"
+copyright = f"{datetime.now().year}, {project} Development Team"
+author = f"{project} Development Team"
+version = umfive.__version__
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -58,7 +62,7 @@ html_codeblock_linenos_style = "inline"
 
 html_theme = "furo"
 
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 # Tell Sphinx to parse internal page headers down to the level you
 # want (h2/h3)
