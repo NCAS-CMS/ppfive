@@ -58,7 +58,7 @@ html_codeblock_linenos_style = "inline"
 
 html_theme = "furo"
 
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 # Tell Sphinx to parse internal page headers down to the level you
 # want (h2/h3)
