@@ -6,7 +6,7 @@ with [CF-netCDF](https://cfconventions.org/)-like structures that
 follow the API of [pyfive](https://pyfive.readthedocs.io), an HDF5
 reader.
 
-### [Read the documentation](https://umfive.readthedocs.io)
+### [Read the `umfive` documentation](https://umfive.readthedocs.io)
 
 This is NOT an alternative to pyfive, it is a package which makes pp and fields files
 look like and taste ("quack like") chunked HDF5 files written by a NetCDF library.
