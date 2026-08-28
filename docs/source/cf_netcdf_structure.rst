@@ -99,11 +99,12 @@ Dataset definition
 A dataset can be passed to `umfive.File` with one of the following
 dataset definitions:
 
-- A string-like path name to a local dataset (such as `str` or
+- A string-like path name of a local dataset (such as a `str` or
   `pathlib.Path` instance).
   
 - A file-like object that accesses a local or remote dataset (such as
-  `io.BufferedReader` or the result of an `fsspec` file system open).
+  a `io.BufferedReader` instance, or the result of an `fsspec` file
+  system open).
   
 - A subclass of `umfive.ByteReader` that accesses a local or remote
   dataset (such as `umfive.LocalPosixReader` or

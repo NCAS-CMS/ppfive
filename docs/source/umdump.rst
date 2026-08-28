@@ -5,7 +5,7 @@ The `umdump` utility
 
 `umfive` includes a command line tool `umdump` which can be used to
 dump the contents of a PP or fields file dataset to the terminal
-(e.g. `umdump myfile.pp`). `umdump` displays the CF-netCDF view of the
+(e.g. `umdump test.pp`). `umdump` displays the CF-netCDF view of the
 dataset CDL format, using a very similarly layout to `ncdump -h`
 (i.e. it does not include any variable data arrays), but without any
 dependencies on the netCDF C library.

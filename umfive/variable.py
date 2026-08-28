@@ -111,14 +111,14 @@ class DataVariableID(ChunkReadMixin):
     def _get_selection_via_chunks(self, args):
         """Get a data subspace from chunks.
 
-        Uses the zarr orthogonal indexer to extract data for a specfic
+        Uses zarr orthogonal indexer to extract data for a specific
         selection within the dataset array and in doing so, only load
         the relevant chunks.
 
         :Parameters:
 
             args: array indices
-                The array indiceis defining the subspace,
+                The array indices defining the subspace,
                 e.g. ``(Ellipsis, 0)``, ``(0, slice(None, None, None),
                 0)``, ``(0, 0, [1, 3, 4])``
 
@@ -587,7 +587,7 @@ class DimensionScale(_Mixin):
 
     A CF dimension coordinate variable and a CF dimension are
     distinguished by the latter having no data array, as well as
-    differnt value for the "NAME" attribute.
+    different value for the ``NAME`` attribute.
 
     **Performance**
 
@@ -631,9 +631,10 @@ class DimensionScale(_Mixin):
 
         Netcdf4Dimid: `list` or `None`, optional
             A single-element list containing the next available
-            "_NetCDF4Dimid" attribute value. The list is updated
-            in-place. If `None` (the default) then the "_NetCDF4Dimid"
-            attribute will be assigned a value of ``0``.
+            ``_NetCDF4Dimid`` attribute value. The list is updated
+            in-place. If `None` (the default) then the
+            ``_NetCDF4Dimid`` attribute will be assigned a value of
+            ``0``.
 
     """
 
@@ -745,7 +746,7 @@ class Variable(_Mixin):
 
     Any CF variable that is not a dimension coordinate variable nor a
     data variable is represented by a `Variable` instance. This
-    includes, but is not restricted to, coordinate bounds, auxilary
+    includes, but is not restricted to, coordinate bounds, auxiliary
     coordinate, domain ancillary, and grid mapping variables.
 
     A CF dimension coordinate variable or CF dimension must be
@@ -839,7 +840,7 @@ class DataVariable(_Mixin):
     """A CF data variable in the dataset.
 
     A data variable comprises a multi-dimensional data array of a
-    single physical quantity, that is defined in the dateaset by one
+    single physical quantity, that is defined in the dataset by one
     or more two-dimensional chunks, each of which is described by
     metadata stored in a lookup header.
 
@@ -872,7 +873,7 @@ class DataVariable(_Mixin):
             The data variable attributes.
 
         shape: `tuple` of `int`
-            The shape of the data array, e.g. ``(12, 17, 110, 106)``.
+            The shape of the data array, e.g. ``(12, 19, 110, 106)``.
 
         dtype: data-type, optional
             The data type of the data array.
@@ -1000,7 +1001,7 @@ class DataVariable(_Mixin):
     def compression(self):
         """Returns `None`.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         """
         return
@@ -1030,7 +1031,7 @@ class DataVariable(_Mixin):
     def compression_opts(self):
         """Returns `None`.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         """
         return
@@ -1039,7 +1040,7 @@ class DataVariable(_Mixin):
     def dims(self):
         """Returns `None`.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         """
         return
@@ -1057,7 +1058,7 @@ class DataVariable(_Mixin):
     def fletcher32(self):
         """Boolean indicator if the fletcher32 filter was applied.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         """
         return False
@@ -1081,7 +1082,7 @@ class DataVariable(_Mixin):
     def lbpack(self):
         """The unique data chunk LBPACK values.
 
-        These are the unique values of the LBxPACK across all data
+        These are the unique values of the LBPACK across all data
         chunks in the variable.
 
         :Returns:
@@ -1133,7 +1134,7 @@ class DataVariable(_Mixin):
     def scaleoffset(self):
         """Returns `None`.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         """
         return
@@ -1142,7 +1143,7 @@ class DataVariable(_Mixin):
     def shuffle(self):
         """Boolean indicator if shuffle filter was applied.
 
-        Provided for compatability with the `pyfive` API.
+        Provided for compatibility with the `pyfive` API.
 
         """
         return False

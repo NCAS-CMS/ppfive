@@ -60,8 +60,15 @@ class RecordInfo:
             The word byte order (``'little'`` or ``'big'``).
 
         extra_data: `dict`
-            Any parsed extra data. If there is no extra data then the
-            dictionary will be empty.
+            Parsed extra data. If there is no extra data then the
+            dictionary will be empty. The keys of a non-empty
+            dictionary will be a subset of: ``'x'``, ``'y'``,
+            ``'y_domain_lower_bound'``, ``'x_domain_lower_bound'``,
+            ``'y_domain_upper_bound'``, ``'x_domain_upper_bound'``,
+            ``'z_domain_lower_bound'``, ``'z_domain_upper_bound'``,
+            ``'title'``, ``'domain_title'``, ``'x_lower_bound'``,
+            ``'x_upper_bound'``, ``'y_lower_bound'``,
+            ``'y_upper_bound'``.
 
     """
 

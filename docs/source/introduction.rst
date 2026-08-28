@@ -52,7 +52,7 @@ a single data variable with 9 supporting metadata variables.
            grid_longitude: <umfive.DimensionScale: grid_longitude, shape=(106,)>
            grid_longitude_bounds: <umfive.Variable: grid_longitude_bounds, shape=(106, 2), dimensions=(grid_longitude, bounds2)>
            rotated_latitude_longitude: <umfive.Variable: rotated_latitude_longitude, shape=(), dimensions=()>
-   >>> um['UM_m01s15i201_vn405']  # Get a variable's attributes
+   >>> um['UM_m01s15i201_vn405'].attrs  # Get a variable's attributes
    {'DIMENSION_LIST': (('time',),
                        ('air_pressure',),
                        ('grid_latitude',),
@@ -88,11 +88,12 @@ Local and remote datasets
 A dataset can be passed to `umfive.File` with one of the following
 dataset definitions:
 
-- A string-like path name to a local dataset (such as `str` or
+- A string-like path name of a local dataset (such as a `str` or
   `pathlib.Path` instance).
   
 - A file-like object that accesses a local or remote dataset (such as
-  `io.BufferedReader` or the result of an `fsspec` file system open).
+  a `io.BufferedReader` instance, or the result of an `fsspec` file
+  system open).
   
 - A `umfive.LocalPosixReader` or `umfive.FileObjReader` object (or any
   subclass of `umfive.ByteReader`) that accesses a local or remote
@@ -131,4 +132,5 @@ being spread out throughout the file. When the dataset is being
 accessed remotely, the difference in performance can be large. For
 instance in one test, a remote S3 fields file (64-bit, 7.0 GiB)
 containing 210 lookup headers took 4 seconds to lazily read, and the
-PP equivalent (32-bit, 3.7 GiB) took 63 seconds. 
+PP equivalent with the same number of lookup headers (32-bit, 3.7 GiB)
+took 63 seconds.
