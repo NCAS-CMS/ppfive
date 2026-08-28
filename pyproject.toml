@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "umfive"
 version = "0.3.0"
-description = "PP/Fields reader with pyfive-style high-level API"
+description = "PP and field files reader with a pyfive-style API"
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,8 +20,9 @@ authors = [
         {name = "Valeriu Predoi - package"},
 ]
 dependencies = [
-	"cftime",
+	"cftime>=1.6.5",
 	"pyfive>=1.1.1",
+        "xnetcdf>=0.3.0",
 	"numpy>=2.0.0",
 ]
 
@@ -30,8 +31,7 @@ test = [
 	"pytest>=8",
 	"pytest-cov>=5",
         "pytest-xdist",
-	"xnetcdf"
-	"fsspec"
+	"fsspec",
 ]
 
 [project.scripts]
