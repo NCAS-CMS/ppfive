@@ -3,7 +3,7 @@
 `umfive` is a Python open source library for representing [UK Met
 Office PP and UM fields file datasets](https://artefacts.ceda.ac.uk/badc_datadocs/um/umdp_F3-UMDPF3.pdf)
 with [CF-netCDF](https://cfconventions.org/)-like structures that
-follow the API of [pyfive](https://pyfive.readthedocs.io>), an HDF5
+follow the API of [pyfive](https://pyfive.readthedocs.io), an HDF5
 reader.
 
 ### [Read the documentation](https://umfive.readthedocs.io)
